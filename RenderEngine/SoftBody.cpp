@@ -1,5 +1,13 @@
 #include "SoftBody.h"
 
+struct Point{
+    float* position;
+    Vector3 speed;
+    Vector3 force;
+    float mass;
+    const float radius = 1.f;
+};
+
 struct Spring{
     unsigned short points[2];
     float baseDistance;
@@ -56,4 +64,142 @@ SoftBody::SoftBody(){
 
 
     //UnloadMesh(restMesh);
+}
+
+void SoftBody::SolveSpring(Spring spring){
+    Vector3 ab = Vector3(spring.points[1]->position-spring.points[0]->position);
+    Vector3 abNorm = ab;
+    abNorm.normalize();
+    
+    float springForce = (ab.length() - spring.baseDistance) * spring.stiffness;
+
+    Vector3 velDiff = spring.points[1]->speed-spring.points[0]->speed;
+
+    float dot = Vector3::dot(abNorm,velDiff);
+
+    float dampingForce = dot*spring.damping;
+
+    float totalForce = springForce + dampingForce;
+
+    Vector3 aForce = totalForce*abNorm;
+    Vector3 baNorm = -1.f*ab;
+    baNorm.normalize();
+    Vector3 bForce = totalForce * baNorm;
+    // >0 attraction <0 repulsion
+
+    spring.points[0]->force+=aForce;
+    spring.points[1]->force+=bForce;
+}
+
+void SoftBody::ClampSpringForce(Spring& spring) {
+    Vector3 delta = spring.points[1]->position - spring.points[0]->position;
+    float dist = delta.length();
+
+    float minDist = 2.0f * spring.points[0]->radius;
+    float maxDist = 2.0f * spring.baseDistance;
+
+    if (dist < minDist || dist > maxDist) {
+        delta.normalize();
+
+        float clampedDist = Maths::clamp(dist, minDist, maxDist);
+        Vector3 target = spring.points[0]->position + delta * clampedDist;
+
+        // Correction vector (split between points, inversely to mass)
+        float totalMass = spring.points[0]->mass + spring.points[1]->mass;
+        float ratioA = spring.points[1]->mass / totalMass;
+        float ratioB = spring.points[0]->mass / totalMass;
+
+        Vector3 correction = (target - spring.points[1]->position);
+
+        spring.points[0]->position -= correction * ratioA;
+        spring.points[1]->position += correction * ratioB;
+
+        // Optional: zero spring force to prevent snapback
+        spring.points[0]->force = Vector3();
+        spring.points[1]->force = Vector3();
+    }
+}
+
+void SoftBody::ApplyShapeMatching(float stiffness)
+{
+    if (points.empty() || restPositions.size() != points.size())return;
+
+    // Compute current and rest centers of mass
+    Vector3 centerNow=Vector3();
+    Vector3 centerRest=Vector3();
+    for (size_t i = 0; i < points.size(); ++i) {
+        centerNow += points[i].position;
+        centerRest += restPositions[i];
+    }
+    centerNow *= 1.f/static_cast<float>(points.size());
+    centerRest *= 1.f/static_cast<float>(restPositions.size());
+
+    // Compute covariance matrix A = Σ(p_i - c_p)(q_i - c_q)^T
+    Matrix3 A;
+    A.zero();
+    for (size_t i = 0; i < points.size(); ++i) {
+        Vector3 p = points[i].position - centerNow;
+        Vector3 q = restPositions[i] - centerRest;
+        A += Matrix3::outerProduct(p, q); // A += pqᵗ
+    }
+
+    // Compute optimal rotation matrix
+    Matrix3 R = A.orthonormalized();
+
+    // Pull current points toward rotated rest pose
+    for (size_t i = 0; i < points.size(); ++i) {
+        Vector3 q = restPositions[i] - centerRest;
+        Vector3 goal = centerNow + R.getColumn(0) * q.x + R.getColumn(1) * q.y + R.getColumn(2) * q.z;
+        Vector3 correction = (goal - points[i].position) * stiffness;
+        points[i].position += correction;
+    }
+}
+
+
+
+void SoftBody::Solve(float dt){
+    for(int i=0;i<points.size();i++){
+        //if(!pointMassGroundCollisions(&points[i]))points[i].force=Vector3::unitZ*-9*points[i].mass; //This line for gravity
+        points[i].force=Vector3(); //This line for no gravity 
+    }
+    for(int i=0;i<springs.size();i++){
+        SolveSpring(springs[i]);
+    }
+    for(int i=0;i<springs.size();i++){
+        ClampSpringForce(springs[i]);
+    }
+
+    ApplyShapeMatching(0.0001f);
+    
+    const float maxSpeed = 100.0f;
+    const float groundFriction=.85f;
+    const float lowSpeedThreshold=2.f;
+    
+    for(int i=0;i<points.size();i++){
+        // Zero low force
+        if(Vector3Length(points[i].force)<lowSpeedThreshold)points[i].force=Vector3();
+        
+        points[i].speed+=points[i].force*dt * (1/points[i].mass);
+        
+        if (Vector3Length(points[i].speed) > maxSpeed) {
+            Vector3Normalize(points[i].speed);
+            points[i].speed *= maxSpeed;
+        }
+        Vector3 tSpeed = points[i].speed*dt;
+        model.meshes[0].vertices[points[i].index*3]+=tSpeed.x;
+        model.meshes[0].vertices[points[i].index*3+1]+=tSpeed.y;
+        model.meshes[0].vertices[points[i].index*3+2]+=tSpeed.z;
+
+        // After movement, apply ground friction *if the point is on the ground*
+        //auto& groundPlane = getGame().getPlanes()[0];
+        //const AABB& planeBox = groundPlane->getBox()->getWorldBox();
+
+        // Check if we're within "contact" range (z within 1 unit of planeBox.max.z)
+        /*if (points[i].position.z - 5.0f <= planeBox.max.z + 0.1f) {
+            points[i].speed.x *= groundFriction;
+            points[i].speed.y *= groundFriction;
+        }*/
+    }
+    //float tmp = (points[0].position-points[2].position).length();
+    //std::cout<<tmp<<std::endl;
 }
