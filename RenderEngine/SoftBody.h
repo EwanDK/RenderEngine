@@ -12,6 +12,9 @@ class SoftBody
 {
 public:
     SoftBody();
+    void SolveSpring(Spring spring);
+    void ClampSpringForce(Spring& spring);
+    void ApplyShapeMatching(float stiffness);
     void Solve(float dt);
     Model model;
 private:

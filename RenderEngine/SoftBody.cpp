@@ -6,10 +6,13 @@ struct Point{
     Vector3 force;
     float mass;
     const float radius = 1.f;
+
+    Vector3 getPosition(){return Vector3(position[0],position[1],position[2]);}
+    void setPosition(Vector3 p){position[0]=p.x;position[1]=p.y;position[2]=p.z;}
 };
 
 struct Spring{
-    unsigned short points[2];
+    Point* points[2];
     float baseDistance;
     float stiffness;
     float damping;
@@ -29,31 +32,34 @@ SoftBody::SoftBody(){
     baseMesh.triangleCount /= 3;
     UploadMesh(&baseMesh, true);
     model = LoadModelFromMesh(baseMesh);
-    
+
+    for(int i=0;i<baseMesh.vertexCount;i++){
+        points.emplace_back(Point{&baseMesh.vertices[i*3],Vector3(),Vector3(),1.f,1.f});
+    }
 
     restPositions = restMesh.vertices;
     unsigned short* restTriangles = restMesh.indices;
 
     for(int i=0;i<restMesh.triangleCount*3;i+=3){
         Spring s1;
-        s1.points[0]=i;
-        s1.points[1]=i+1;
+        s1.points[0]=&points[i];
+        s1.points[1]=&points[i+1];
         s1.baseDistance = Vector3Distance(Vector3{restPositions[restTriangles[i]*3],restPositions[restTriangles[i]*3+1],restPositions[restTriangles[i]*3+2]},Vector3{restPositions[restTriangles[i+1]*3],restPositions[restTriangles[i+1]*3+1],restPositions[restTriangles[i+1]*3+2]});
         s1.stiffness=2.f;
         s1.damping=.5f;
         springs.emplace_back(s1);
 
         Spring s2;
-        s2.points[0]=i;
-        s2.points[1]=i+2;
+        s2.points[0]=&points[i];
+        s2.points[1]=&points[i+2];
         s2.baseDistance = Vector3Distance(Vector3{restPositions[restTriangles[i]*3],restPositions[restTriangles[i]*3+1],restPositions[restTriangles[i]*3+2]},Vector3{restPositions[restTriangles[i+2]*3],restPositions[restTriangles[i+2]*3+1],restPositions[restTriangles[i+2]*3+2]});
         s2.stiffness=2.f;
         s2.damping=.5f;
         springs.emplace_back(s2);
 
         Spring s3;
-        s3.points[0]=i+2;
-        s3.points[1]=i+1;
+        s3.points[0]=&points[i+2];
+        s3.points[1]=&points[i+1];
         s3.baseDistance = Vector3Distance(Vector3{restPositions[restTriangles[i+2]*3],restPositions[restTriangles[i+2]*3+1],restPositions[restTriangles[i+2]*3+2]},Vector3{restPositions[restTriangles[i+1]*3],restPositions[restTriangles[i+1]*3+1],restPositions[restTriangles[i+1]*3+2]});
         s3.stiffness=2.f;
         s3.damping=.5f;
@@ -69,22 +75,22 @@ SoftBody::SoftBody(){
 void SoftBody::SolveSpring(Spring spring){
     Vector3 ab = Vector3(spring.points[1]->position-spring.points[0]->position);
     Vector3 abNorm = ab;
-    abNorm.normalize();
+    Vector3Normalize(abNorm);
     
-    float springForce = (ab.length() - spring.baseDistance) * spring.stiffness;
+    float springForce = (Vector3Length(ab) - spring.baseDistance) * spring.stiffness;
 
     Vector3 velDiff = spring.points[1]->speed-spring.points[0]->speed;
 
-    float dot = Vector3::dot(abNorm,velDiff);
+    float dot =Vector3DotProduct(abNorm,velDiff);
 
     float dampingForce = dot*spring.damping;
 
     float totalForce = springForce + dampingForce;
 
-    Vector3 aForce = totalForce*abNorm;
-    Vector3 baNorm = -1.f*ab;
-    baNorm.normalize();
-    Vector3 bForce = totalForce * baNorm;
+    Vector3 aForce = abNorm*totalForce;
+    Vector3 baNorm = ab*-1.f;
+    Vector3Normalize(baNorm);
+    Vector3 bForce = baNorm*totalForce;
     // >0 attraction <0 repulsion
 
     spring.points[0]->force+=aForce;
@@ -92,27 +98,27 @@ void SoftBody::SolveSpring(Spring spring){
 }
 
 void SoftBody::ClampSpringForce(Spring& spring) {
-    Vector3 delta = spring.points[1]->position - spring.points[0]->position;
-    float dist = delta.length();
+    Vector3 delta = spring.points[1]->getPosition() - spring.points[0]->getPosition();
+    float dist = Vector3Length(delta);
 
     float minDist = 2.0f * spring.points[0]->radius;
     float maxDist = 2.0f * spring.baseDistance;
 
     if (dist < minDist || dist > maxDist) {
-        delta.normalize();
+        Vector3Normalize(delta);
 
-        float clampedDist = Maths::clamp(dist, minDist, maxDist);
-        Vector3 target = spring.points[0]->position + delta * clampedDist;
+        float clampedDist = Clamp(dist, minDist, maxDist);
+        Vector3 target = spring.points[0]->getPosition() + delta * clampedDist;
 
         // Correction vector (split between points, inversely to mass)
         float totalMass = spring.points[0]->mass + spring.points[1]->mass;
         float ratioA = spring.points[1]->mass / totalMass;
         float ratioB = spring.points[0]->mass / totalMass;
 
-        Vector3 correction = (target - spring.points[1]->position);
+        Vector3 correction = (target - spring.points[1]->getPosition());
 
-        spring.points[0]->position -= correction * ratioA;
-        spring.points[1]->position += correction * ratioB;
+        spring.points[0]->setPosition(spring.points[0]->getPosition()-(correction*ratioA));
+        spring.points[1]->setPosition(spring.points[0]->getPosition()-(correction*ratioB));
 
         // Optional: zero spring force to prevent snapback
         spring.points[0]->force = Vector3();
@@ -122,24 +128,24 @@ void SoftBody::ClampSpringForce(Spring& spring) {
 
 void SoftBody::ApplyShapeMatching(float stiffness)
 {
-    if (points.empty() || restPositions.size() != points.size())return;
+    if (points.empty() || model.meshes[0].vertexCount != points.size())return;
 
     // Compute current and rest centers of mass
     Vector3 centerNow=Vector3();
     Vector3 centerRest=Vector3();
     for (size_t i = 0; i < points.size(); ++i) {
-        centerNow += points[i].position;
-        centerRest += restPositions[i];
+        centerNow += points[i].getPosition();
+        centerRest += Vector3(restPositions[i*3],restPositions[i*3+1],restPositions[i*3+2]);
     }
     centerNow *= 1.f/static_cast<float>(points.size());
-    centerRest *= 1.f/static_cast<float>(restPositions.size());
+    centerRest *= 1.f/static_cast<float>(model.meshes[0].vertexCount);
 
     // Compute covariance matrix A = Σ(p_i - c_p)(q_i - c_q)^T
     Matrix3 A;
     A.zero();
     for (size_t i = 0; i < points.size(); ++i) {
-        Vector3 p = points[i].position - centerNow;
-        Vector3 q = restPositions[i] - centerRest;
+        Vector3 p = points[i].getPosition() - centerNow;
+        Vector3 q = Vector3(restPositions[i*3],restPositions[i*3+1],restPositions[i*3+2]) - centerRest;
         A += Matrix3::outerProduct(p, q); // A += pqᵗ
     }
 
@@ -148,10 +154,10 @@ void SoftBody::ApplyShapeMatching(float stiffness)
 
     // Pull current points toward rotated rest pose
     for (size_t i = 0; i < points.size(); ++i) {
-        Vector3 q = restPositions[i] - centerRest;
+        Vector3 q = Vector3(restPositions[i*3],restPositions[i*3+1],restPositions[i*3+2]) - centerRest;
         Vector3 goal = centerNow + R.getColumn(0) * q.x + R.getColumn(1) * q.y + R.getColumn(2) * q.z;
-        Vector3 correction = (goal - points[i].position) * stiffness;
-        points[i].position += correction;
+        Vector3 correction = (goal - points[i].getPosition()) * stiffness;
+        points[i].setPosition(points[i].getPosition()+correction);
     }
 }
 
@@ -186,10 +192,7 @@ void SoftBody::Solve(float dt){
             points[i].speed *= maxSpeed;
         }
         Vector3 tSpeed = points[i].speed*dt;
-        model.meshes[0].vertices[points[i].index*3]+=tSpeed.x;
-        model.meshes[0].vertices[points[i].index*3+1]+=tSpeed.y;
-        model.meshes[0].vertices[points[i].index*3+2]+=tSpeed.z;
-
+        points[i].setPosition(points[i].getPosition()+tSpeed);
         // After movement, apply ground friction *if the point is on the ground*
         //auto& groundPlane = getGame().getPlanes()[0];
         //const AABB& planeBox = groundPlane->getBox()->getWorldBox();
