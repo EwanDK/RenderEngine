@@ -21,17 +21,32 @@ inline float cotan(float angle){
 
 inline void GenerateUvSphere(int rings,int slices,float radius,float** outVertices,float** outNormals,unsigned short** outIndices,int* outVertexCount,int* outIndexCount){
     
-    const int vertexCount = (rings + 1) * (slices + 1);
-    const int indexCount  = rings * slices * 6;
+    // ---- Counts ----
+    const int vertexCount = 2 + (rings - 1) * slices;
+    const int indexCount =
+        slices * 3 +                 // top cap
+        slices * 6 * (rings - 2) +    // middle
+        slices * 3;                  // bottom cap
 
     float* vertices = (float*)malloc(vertexCount * 3 * sizeof(float));
-    float* normals  = (float*)malloc(vertexCount * 3 * sizeof(float));
+    float* normals = (float*)malloc(vertexCount * 3 * sizeof(float));
     unsigned short* indices = (unsigned short*)malloc(indexCount * sizeof(unsigned short));
 
     int v = 0;
 
+    // ---- Top pole ----
+    vertices[0] = 0.0f;
+    vertices[1] = radius;
+    vertices[2] = 0.0f;
+
+    normals[0] = 0.0f;
+    normals[1] = 1.0f;
+    normals[2] = 0.0f;
+
+    v = 1;
+
     //Vertices, normals
-    for (int y = 0; y <= rings; y++){
+    for (int y = 1; y <= rings; y++){
         
         float vRatio = (float)y / (float)rings;
         float theta = vRatio * M_PI;  // 0 → PI
@@ -65,27 +80,67 @@ inline void GenerateUvSphere(int rings,int slices,float radius,float** outVertic
         }
     }
 
+    // ---- Bottom pole ----
+    vertices[v * 3 + 0] = 0.0f;
+    vertices[v * 3 + 1] = -radius;
+    vertices[v * 3 + 2] = 0.0f;
+
+    normals[v * 3 + 0] = 0.0f;
+    normals[v * 3 + 1] = -1.0f;
+    normals[v * 3 + 2] = 0.0f;
+
+    const int bottomIndex = v;
+
     //Indices
     int i = 0;
-    for (int y = 0; y < rings; y++){
-        
-        for (int x = 0; x < slices; x++){
-            
-            int i0 = y * (slices + 1) + x;
-            int i1 = i0 + slices + 1;
-            int i2 = i0 + 1;
-            int i3 = i1 + 1;
 
-            // Triangle 1
+    // Top cap
+    for (int x = 0; x < slices; x++)
+    {
+        int a = 0;
+        int b = 1 + x;
+        int c = 1 + (x + 1) % slices;
+
+        indices[i++] = a;
+        indices[i++] = b;
+        indices[i++] = c;
+    }
+    
+    // Middle quads
+    for (int y = 0; y < rings - 2; y++)
+    {
+        int ringStart = 1 + y * slices;
+        int nextRing  = ringStart + slices;
+
+        for (int x = 0; x < slices; x++)
+        {
+            int i0 = ringStart + x;
+            int i1 = ringStart + (x + 1) % slices;
+            int i2 = nextRing + x;
+            int i3 = nextRing + (x + 1) % slices;
+
             indices[i++] = i0;
-            indices[i++] = i1;
             indices[i++] = i2;
+            indices[i++] = i1;
 
-            // Triangle 2
-            indices[i++] = i2;
             indices[i++] = i1;
+            indices[i++] = i2;
             indices[i++] = i3;
         }
+    }
+
+    // Bottom cap
+    int lastRingStart = 1 + (rings - 2) * slices;
+
+    for (int x = 0; x < slices; x++)
+    {
+        int a = lastRingStart + x;
+        int b = bottomIndex;
+        int c = lastRingStart + (x + 1) % slices;
+
+        indices[i++] = a;
+        indices[i++] = b;
+        indices[i++] = c;
     }
 
     *outVertices = vertices;

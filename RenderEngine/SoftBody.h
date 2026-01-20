@@ -2,11 +2,24 @@
 #include <vector>
 
 #include "raylib.h"
-#include "raymath.h"
-#include "MathUtils.h"
 
-struct Spring;
-struct Point;
+struct Point{
+    Vector3 position;
+    Vector3 speed;
+    Vector3 force;
+    float mass;
+    const float radius = 1.f;
+    int index;
+};
+
+struct Spring{
+    Point* points[2];
+    float baseDistance;
+    float stiffness;
+    float damping;
+    int virtualDistance=0;
+};
+
 
 class SoftBody
 {

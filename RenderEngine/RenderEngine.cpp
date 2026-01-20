@@ -11,21 +11,25 @@ int main(int, char**)
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;
     
-    Mesh baseMesh = { 0 };
+    /*Mesh baseMesh = { 0 };
     GenerateUvSphere(100, 100, 100.0f,&baseMesh.vertices,&baseMesh.normals,&baseMesh.indices,&baseMesh.vertexCount,&baseMesh.triangleCount);
     baseMesh.triangleCount /= 3;
     UploadMesh(&baseMesh, true);
-    Model model = LoadModelFromMesh(baseMesh);
+    Model model = LoadModelFromMesh(baseMesh);*/
+
+    SoftBody soft = SoftBody();
     
     while (!WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(RAYWHITE);
         BeginMode3D(camera);
-        DrawModelWires(model,Vector3(0.f,0.f,0.f),1,BLUE);
+        //DrawModelWires(model,Vector3(0.f,0.f,0.f),1,BLUE);
+        DrawModelWires(soft.model,Vector3(0.f,0.f,0.f),1,BLUE);
         DrawGrid(20, 10.0f);
         EndMode3D();
         EndDrawing();
+        soft.Solve(GetFrameTime());
     }
     CloseWindow();
     return 0;
