@@ -25,10 +25,13 @@ class SoftBody
 {
 public:
     SoftBody();
-    void SolveSpring(Spring spring);
+    void SolveSpring(Spring& spring);
     void ClampSpringForce(Spring& spring);
     void ApplyShapeMatching(float stiffness);
     void Solve(float dt);
+    void Draw();
+    void RecomputeNormals(Mesh& mesh);
+    void Update(float dt);
     Model model;
 private:
     std::vector<Spring> springs;

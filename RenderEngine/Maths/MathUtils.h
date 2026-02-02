@@ -23,14 +23,19 @@ inline void GenerateUvSphere(int rings,int slices,float radius,float** outVertic
     
     // ---- Counts ----
     const int vertexCount = 2 + (rings - 1) * slices;
-    const int indexCount =
-        slices * 3 +                 // top cap
-        slices * 6 * (rings - 2) +    // middle
-        slices * 3;                  // bottom cap
+    const int indexCount = slices * 3 + slices * 6 * (rings - 2) + slices * 3;
 
     float* vertices = (float*)malloc(vertexCount * 3 * sizeof(float));
     float* normals = (float*)malloc(vertexCount * 3 * sizeof(float));
     unsigned short* indices = (unsigned short*)malloc(indexCount * sizeof(unsigned short));
+
+    if (!vertices || !normals || !indices) {
+        // malloc failed
+        *outVertices = *outNormals = NULL;
+        *outIndices = NULL;
+        *outVertexCount = *outIndexCount = 0;
+        return;
+    }
 
     int v = 0;
 
@@ -46,7 +51,7 @@ inline void GenerateUvSphere(int rings,int slices,float radius,float** outVertic
     v = 1;
 
     //Vertices, normals
-    for (int y = 1; y <= rings; y++){
+    for (int y = 1; y < rings; y++){
         
         float vRatio = (float)y / (float)rings;
         float theta = vRatio * M_PI;  // 0 → PI
@@ -54,7 +59,7 @@ inline void GenerateUvSphere(int rings,int slices,float radius,float** outVertic
         float sinTheta = sinf(theta);
         float cosTheta = cosf(theta);
 
-        for (int x = 0; x <= slices; x++){
+        for (int x = 0; x < slices; x++){
             
             float uRatio = (float)x / (float)slices;
             float phi = uRatio * 2.0f * M_PI; // 0 → 2PI
@@ -67,12 +72,12 @@ inline void GenerateUvSphere(int rings,int slices,float radius,float** outVertic
             float nz = sinPhi * sinTheta;
 
             // Position
-            vertices[v * 3 + 0] = radius * nx;
+            vertices[v * 3] = radius * nx;
             vertices[v * 3 + 1] = radius * ny;
             vertices[v * 3 + 2] = radius * nz;
 
             // Normal
-            normals[v * 3 + 0] = nx;
+            normals[v * 3] = nx;
             normals[v * 3 + 1] = ny;
             normals[v * 3 + 2] = nz;
 
@@ -81,13 +86,13 @@ inline void GenerateUvSphere(int rings,int slices,float radius,float** outVertic
     }
 
     // ---- Bottom pole ----
-    vertices[v * 3 + 0] = 0.0f;
-    vertices[v * 3 + 1] = -radius;
-    vertices[v * 3 + 2] = 0.0f;
+    vertices[v*3] = 0.0f;
+    vertices[v*3+1] = -radius;
+    vertices[v*3+2] = 0.0f;
 
-    normals[v * 3 + 0] = 0.0f;
-    normals[v * 3 + 1] = -1.0f;
-    normals[v * 3 + 2] = 0.0f;
+    normals[v*3] = 0.0f;
+    normals[v*3+1] = -1.0f;
+    normals[v*3+2] = 0.0f;
 
     const int bottomIndex = v;
 

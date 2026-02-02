@@ -1,5 +1,7 @@
 #include "SoftBody.h"
 
+#include <iostream>
+
 #include "raymath.h"
 #include "MathUtils.h"
 
@@ -9,12 +11,11 @@ SoftBody::SoftBody(){
 
     GenerateUvSphere(10, 10, 100.0f,&restMesh.vertices,&restMesh.normals,&restMesh.indices,&restMesh.vertexCount,&restMesh.triangleCount);
     restMesh.triangleCount /= 3;
-    //UploadMesh(&restMesh, false);
     
     Mesh baseMesh = { 0 };
     GenerateUvSphere(10, 10, 50.0f,&baseMesh.vertices,&baseMesh.normals,&baseMesh.indices,&baseMesh.vertexCount,&baseMesh.triangleCount);
     baseMesh.triangleCount /= 3;
-    UploadMesh(&baseMesh, true);
+    UploadMesh(&baseMesh, false);
     model = LoadModelFromMesh(baseMesh);
 
     for(int i=0;i<baseMesh.vertexCount;i++){
@@ -24,29 +25,43 @@ SoftBody::SoftBody(){
     restPositions = restMesh.vertices;
     unsigned short* restTriangles = restMesh.indices;
 
-    for(int i=0;i<restMesh.triangleCount*3;i+=3){
+    for (int i = 0; i < restMesh.triangleCount; i++)
+    {
+        int i0 = restTriangles[i*3];
+        int i1 = restTriangles[i*3+1];
+        int i2 = restTriangles[i*3+2];
+
         Spring s1;
-        s1.points[0]=&points[i];
-        s1.points[1]=&points[i+1];
-        s1.baseDistance = Vector3Distance(Vector3{restPositions[restTriangles[i]*3],restPositions[restTriangles[i]*3+1],restPositions[restTriangles[i]*3+2]},Vector3{restPositions[restTriangles[i+1]*3],restPositions[restTriangles[i+1]*3+1],restPositions[restTriangles[i+1]*3+2]});
-        s1.stiffness=2.f;
-        s1.damping=.5f;
+        s1.points[0] = &points[i0];
+        s1.points[1] = &points[i1];
+        s1.baseDistance = Vector3Distance(
+            Vector3{restPositions[i0*3], restPositions[i0*3+1], restPositions[i0*3+2]},
+            Vector3{restPositions[i1*3], restPositions[i1*3+1], restPositions[i1*3+2]}
+        );
+        s1.stiffness = 2.f;
+        s1.damping   = .5f;
         springs.emplace_back(s1);
 
         Spring s2;
-        s2.points[0]=&points[i];
-        s2.points[1]=&points[i+2];
-        s2.baseDistance = Vector3Distance(Vector3{restPositions[restTriangles[i]*3],restPositions[restTriangles[i]*3+1],restPositions[restTriangles[i]*3+2]},Vector3{restPositions[restTriangles[i+2]*3],restPositions[restTriangles[i+2]*3+1],restPositions[restTriangles[i+2]*3+2]});
-        s2.stiffness=2.f;
-        s2.damping=.5f;
+        s2.points[0] = &points[i0];
+        s2.points[1] = &points[i2];
+        s2.baseDistance = Vector3Distance(
+            Vector3{restPositions[i0*3], restPositions[i0*3+1], restPositions[i0*3+2]},
+            Vector3{restPositions[i2*3], restPositions[i2*3+1], restPositions[i2*3+2]}
+        );
+        s2.stiffness = 2.f;
+        s2.damping   = .5f;
         springs.emplace_back(s2);
 
         Spring s3;
-        s3.points[0]=&points[i+2];
-        s3.points[1]=&points[i+1];
-        s3.baseDistance = Vector3Distance(Vector3{restPositions[restTriangles[i+2]*3],restPositions[restTriangles[i+2]*3+1],restPositions[restTriangles[i+2]*3+2]},Vector3{restPositions[restTriangles[i+1]*3],restPositions[restTriangles[i+1]*3+1],restPositions[restTriangles[i+1]*3+2]});
-        s3.stiffness=2.f;
-        s3.damping=.5f;
+        s3.points[0] = &points[i2];
+        s3.points[1] = &points[i1];
+        s3.baseDistance = Vector3Distance(
+            Vector3{restPositions[i2*3], restPositions[i2*3+1], restPositions[i2*3+2]},
+            Vector3{restPositions[i1*3], restPositions[i1*3+1], restPositions[i1*3+2]}
+        );
+        s3.stiffness = 2.f;
+        s3.damping   = .5f;
         springs.emplace_back(s3);
     }
     
@@ -56,12 +71,14 @@ SoftBody::SoftBody(){
     //UnloadMesh(restMesh);
 }
 
-void SoftBody::SolveSpring(Spring spring){
+void SoftBody::SolveSpring(Spring& spring){
     Vector3 ab = Vector3(spring.points[1]->position-spring.points[0]->position);
+    float len = Vector3Length(ab);
+    if (len < 1e-6f) return;
     Vector3 abNorm = ab;
     Vector3Normalize(abNorm);
     
-    float springForce = (Vector3Length(ab) - spring.baseDistance) * spring.stiffness;
+    float springForce = (len - spring.baseDistance) * spring.stiffness;
 
     Vector3 velDiff = spring.points[1]->speed-spring.points[0]->speed;
 
@@ -84,6 +101,7 @@ void SoftBody::SolveSpring(Spring spring){
 void SoftBody::ClampSpringForce(Spring& spring) {
     Vector3 delta = spring.points[1]->position - spring.points[0]->position;
     float dist = Vector3Length(delta);
+    if (dist < 1e-6f) return;
 
     float minDist = 2.0f * spring.points[0]->radius;
     float maxDist = 2.0f * spring.baseDistance;
@@ -102,7 +120,7 @@ void SoftBody::ClampSpringForce(Spring& spring) {
         Vector3 correction = (target - spring.points[1]->position);
 
         spring.points[0]->position-=correction*ratioA;
-        spring.points[0]->position-=correction*ratioB;
+        spring.points[1]->position-=correction*ratioB;
 
         // Optional: zero spring force to prevent snapback
         spring.points[0]->force = Vector3();
@@ -189,4 +207,76 @@ void SoftBody::Solve(float dt){
     }
     //float tmp = (points[0].position-points[2].position).length();
     //std::cout<<tmp<<std::endl;
+}
+
+void SoftBody::Draw(){
+    for (int i = 0; i < model.meshes[0].vertexCount; i++)
+    {
+        model.meshes[0].vertices[i*3] = points[i].position.x;
+        model.meshes[0].vertices[i*3+1] = points[i].position.y;
+        model.meshes[0].vertices[i*3+2] = points[i].position.z;
+    }
+
+    RecomputeNormals(model.meshes[0]);
+
+    UpdateMeshBuffer(model.meshes[0],0,model.meshes[0].vertices,model.meshes[0].vertexCount*3*sizeof(float),0);
+    UpdateMeshBuffer(model.meshes[0], 2, model.meshes[0].normals,  model.meshes[0].vertexCount * 3 * sizeof(float), 0);
+
+    DrawModelWires(model,Vector3(0.f,0.f,0.f),1,BLUE);
+}
+
+void SoftBody::RecomputeNormals(Mesh& mesh)
+{
+    // Clear normals
+    for (int i = 0; i < mesh.vertexCount * 3; i++)
+    {
+        mesh.normals[i] = 0.0f;
+    }
+
+    // For each triangle
+    for (int i = 0; i < mesh.triangleCount; i++)
+    {
+        int i0 = mesh.indices[i*3];
+        int i1 = mesh.indices[i*3+1];
+        int i2 = mesh.indices[i*3+2];
+
+        Vector3 v0 = {mesh.vertices[i0*3],mesh.vertices[i0*3+1],mesh.vertices[i0*3+2]};
+        Vector3 v1 = {mesh.vertices[i1*3],mesh.vertices[i1*3+1],mesh.vertices[i1*3+2]};
+        Vector3 v2 = {mesh.vertices[i2*3],mesh.vertices[i2*3+1],mesh.vertices[i2*3+2]};
+
+        // Compute face normal
+        Vector3 e1 = Vector3Subtract(v1, v0);
+        Vector3 e2 = Vector3Subtract(v2, v0);
+        Vector3 faceNormal = Vector3CrossProduct(e1, e2);
+
+        // Accumulate into vertex normals
+        mesh.normals[i0*3] += faceNormal.x;
+        mesh.normals[i0*3+1] += faceNormal.y;
+        mesh.normals[i0*3+2] += faceNormal.z;
+
+        mesh.normals[i1*3] += faceNormal.x;
+        mesh.normals[i1*3+1] += faceNormal.y;
+        mesh.normals[i1*3+2] += faceNormal.z;
+
+        mesh.normals[i2*3] += faceNormal.x;
+        mesh.normals[i2*3+1] += faceNormal.y;
+        mesh.normals[i2*3+2] += faceNormal.z;
+    }
+
+    // Normalize all normals
+    for (int i = 0; i < mesh.vertexCount; i++)
+    {
+        Vector3 n = {mesh.normals[i*3],mesh.normals[i*3+1],mesh.normals[i*3+2]};
+
+        n = Vector3Normalize(n);
+
+        mesh.normals[i*3] = n.x;
+        mesh.normals[i*3+1] = n.y;
+        mesh.normals[i*3+2] = n.z;
+    }
+}
+
+void SoftBody::Update(float dt){
+    Solve(dt);
+    std::cout<<model.meshes[0].vertices[0]<<" "<< model.meshes[0].vertices[1] << " " << model.meshes[0].vertices[2]<<std::endl;
 }
