@@ -209,7 +209,6 @@ void SoftBody::Draw(){
         model.meshes[0].vertices[i*3+1] = points[i].position.y;
         model.meshes[0].vertices[i*3+2] = points[i].position.z;
     }
-    std::cout<<model.meshes[0].vertices[0]<<" "<< model.meshes[0].vertices[1] << " " << model.meshes[0].vertices[2]<<std::endl;
 
     RecomputeNormals(model.meshes[0]);
 
