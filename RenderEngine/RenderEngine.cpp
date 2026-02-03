@@ -19,12 +19,11 @@ int main(int, char**)
         ClearBackground(RAYWHITE);
         BeginMode3D(camera);
         //DrawModelWires(model,Vector3(0.f,0.f,0.f),1,BLUE);
-        soft.Update(GetFrameTime());
-        soft.Draw();
+        soft.Update(/*GetFrameTime()*/1.f/60.f);
         DrawGrid(20, 10.0f);
         EndMode3D();
         EndDrawing();
-        soft.Solve(GetFrameTime());
+        //soft.Solve(GetFrameTime());
     }
     CloseWindow();
     return 0;

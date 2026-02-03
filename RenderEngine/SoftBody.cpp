@@ -1,6 +1,7 @@
 #include "SoftBody.h"
 
 #include <iostream>
+#include <set>
 
 #include "raymath.h"
 #include "MathUtils.h"
@@ -24,6 +25,7 @@ SoftBody::SoftBody(){
 
     restPositions = restMesh.vertices;
     unsigned short* restTriangles = restMesh.indices;
+    std::set<std::pair<int,int>> usedEdges;
 
     for (int i = 0; i < restMesh.triangleCount; i++)
     {
@@ -31,38 +33,30 @@ SoftBody::SoftBody(){
         int i1 = restTriangles[i*3+1];
         int i2 = restTriangles[i*3+2];
 
-        Spring s1;
-        s1.points[0] = &points[i0];
-        s1.points[1] = &points[i1];
-        s1.baseDistance = Vector3Distance(
-            Vector3{restPositions[i0*3], restPositions[i0*3+1], restPositions[i0*3+2]},
-            Vector3{restPositions[i1*3], restPositions[i1*3+1], restPositions[i1*3+2]}
-        );
-        s1.stiffness = 2.f;
-        s1.damping   = .5f;
-        springs.emplace_back(s1);
+        auto addSpring = [&](int a, int b){
+            int lo = std::min(a, b);
+            int hi = std::max(a, b);
 
-        Spring s2;
-        s2.points[0] = &points[i0];
-        s2.points[1] = &points[i2];
-        s2.baseDistance = Vector3Distance(
-            Vector3{restPositions[i0*3], restPositions[i0*3+1], restPositions[i0*3+2]},
-            Vector3{restPositions[i2*3], restPositions[i2*3+1], restPositions[i2*3+2]}
-        );
-        s2.stiffness = 2.f;
-        s2.damping   = .5f;
-        springs.emplace_back(s2);
+            if (usedEdges.insert({lo, hi}).second){
+                Spring s;
+                s.points[0] = &points[lo];
+                s.points[1] = &points[hi];
 
-        Spring s3;
-        s3.points[0] = &points[i2];
-        s3.points[1] = &points[i1];
-        s3.baseDistance = Vector3Distance(
-            Vector3{restPositions[i2*3], restPositions[i2*3+1], restPositions[i2*3+2]},
-            Vector3{restPositions[i1*3], restPositions[i1*3+1], restPositions[i1*3+2]}
-        );
-        s3.stiffness = 2.f;
-        s3.damping   = .5f;
-        springs.emplace_back(s3);
+                s.baseDistance = Vector3Distance(
+                    Vector3{restPositions[lo*3], restPositions[lo*3+1], restPositions[lo*3+2]},
+                    Vector3{restPositions[hi*3], restPositions[hi*3+1], restPositions[hi*3+2]}
+                );
+
+                s.stiffness = 2.f;
+                s.damping   = 0.5f;
+                springs.emplace_back(s);
+            }
+        };
+
+        addSpring(i0, i1);
+        addSpring(i0, i2);
+        addSpring(i1, i2);
+        
     }
     
 
@@ -216,6 +210,7 @@ void SoftBody::Draw(){
         model.meshes[0].vertices[i*3+1] = points[i].position.y;
         model.meshes[0].vertices[i*3+2] = points[i].position.z;
     }
+    std::cout<<model.meshes[0].vertices[0]<<" "<< model.meshes[0].vertices[1] << " " << model.meshes[0].vertices[2]<<std::endl;
 
     RecomputeNormals(model.meshes[0]);
 
@@ -278,5 +273,5 @@ void SoftBody::RecomputeNormals(Mesh& mesh)
 
 void SoftBody::Update(float dt){
     Solve(dt);
-    std::cout<<model.meshes[0].vertices[0]<<" "<< model.meshes[0].vertices[1] << " " << model.meshes[0].vertices[2]<<std::endl;
+    Draw();
 }
