@@ -10,7 +10,7 @@ SoftBody::SoftBody(){
     
     Mesh restMesh = { 0 };
 
-    GenerateUvSphere(10, 10, 100.0f,&restMesh.vertices,&restMesh.normals,&restMesh.indices,&restMesh.vertexCount,&restMesh.triangleCount);
+    GenerateUvSphere(10, 10, 60.0f,&restMesh.vertices,&restMesh.normals,&restMesh.indices,&restMesh.vertexCount,&restMesh.triangleCount);
     restMesh.triangleCount /= 3;
     
     Mesh baseMesh = { 0 };
@@ -69,8 +69,7 @@ void SoftBody::SolveSpring(Spring& spring){
     Vector3 ab = Vector3(spring.points[1]->position-spring.points[0]->position);
     float len = Vector3Length(ab);
     if (len < 1e-6f) return;
-    Vector3 abNorm = ab;
-    Vector3Normalize(abNorm);
+    Vector3 abNorm = Vector3Normalize(ab);
     
     float springForce = (len - spring.baseDistance) * spring.stiffness;
 
@@ -84,7 +83,7 @@ void SoftBody::SolveSpring(Spring& spring){
 
     Vector3 aForce = abNorm*totalForce;
     Vector3 baNorm = ab*-1.f;
-    Vector3Normalize(baNorm);
+    baNorm=Vector3Normalize(baNorm);
     Vector3 bForce = baNorm*totalForce;
     // >0 attraction <0 repulsion
 
@@ -101,7 +100,7 @@ void SoftBody::ClampSpringForce(Spring& spring) {
     float maxDist = 2.0f * spring.baseDistance;
 
     if (dist < minDist || dist > maxDist) {
-        Vector3Normalize(delta);
+        delta=Vector3Normalize(delta);
 
         float clampedDist = Clamp(dist, minDist, maxDist);
         Vector3 target = spring.points[0]->position + delta * clampedDist;
@@ -184,7 +183,7 @@ void SoftBody::Solve(float dt){
         points[i].speed+=points[i].force*dt * (1/points[i].mass);
         
         if (Vector3Length(points[i].speed) > maxSpeed) {
-            Vector3Normalize(points[i].speed);
+            points[i].speed=Vector3Normalize(points[i].speed);
             points[i].speed *= maxSpeed;
         }
         Vector3 tSpeed = points[i].speed*dt;
