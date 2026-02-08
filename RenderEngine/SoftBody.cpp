@@ -159,47 +159,77 @@ void SoftBody::ApplyShapeMatching(float stiffness)
 
 
 void SoftBody::Solve(float dt){
+    // Clamp dt to prevent tunneling on frame stutters
+    if (dt > 1.0f / 30.0f) dt = 1.0f / 30.0f;
+
+    // 1. Apply gravity
     for(int i=0;i<points.size();i++){
-        //if(!pointMassGroundCollisions(&points[i]))points[i].force=Vector3::unitZ*-9*points[i].mass; //This line for gravity
-        points[i].force=Vector3(); //This line for no gravity 
+        points[i].force = Vector3{0.0f, -9.81f * points[i].mass, 0.0f};
     }
+
+    // 2. Spring forces
     for(int i=0;i<springs.size();i++){
         SolveSpring(springs[i]);
     }
+
+    // 3. Spring distance constraints
     for(int i=0;i<springs.size();i++){
         ClampSpringForce(springs[i]);
     }
 
+    // 4. Shape matching
     ApplyShapeMatching(0.0001f);
-    
+
+    // 5. Integrate velocity + position
     const float maxSpeed = 100.0f;
-    const float groundFriction=.85f;
     const float lowSpeedThreshold=2.f;
-    
+
     for(int i=0;i<points.size();i++){
-        // Zero low force
         if(Vector3Length(points[i].force)<lowSpeedThreshold)points[i].force=Vector3();
-        
+
         points[i].speed+=points[i].force*dt * (1/points[i].mass);
-        
+
         if (Vector3Length(points[i].speed) > maxSpeed) {
             points[i].speed=Vector3Normalize(points[i].speed);
             points[i].speed *= maxSpeed;
         }
         Vector3 tSpeed = points[i].speed*dt;
         points[i].position+=tSpeed;
-        // After movement, apply ground friction *if the point is on the ground*
-        //auto& groundPlane = getGame().getPlanes()[0];
-        //const AABB& planeBox = groundPlane->getBox()->getWorldBox();
-
-        // Check if we're within "contact" range (z within 1 unit of planeBox.max.z)
-        /*if (points[i].position.z - 5.0f <= planeBox.max.z + 0.1f) {
-            points[i].speed.x *= groundFriction;
-            points[i].speed.y *= groundFriction;
-        }*/
     }
-    //float tmp = (points[0].position-points[2].position).length();
-    //std::cout<<tmp<<std::endl;
+
+    // 6. Collision resolution (after integration, position-based)
+    if (hasGroundPlane) {
+        Collision::ResolveGroundCollision(points, groundPlane, 0.3f, 0.85f);
+    }
+
+    // 7. Static collider collision (GJK + EPA)
+    if (!staticColliders.empty()) {
+        positionCache.resize(points.size());
+        for (size_t i = 0; i < points.size(); i++) {
+            positionCache[i] = points[i].position;
+        }
+        Collision::ConvexShape softShape = Collision::ConvexShapeFromPoints(positionCache.data(), (int)positionCache.size());
+
+        for (auto& collider : staticColliders) {
+            auto contact = Collision::TestConvex(softShape, collider);
+            if (contact.has_value()) {
+                Collision::ResolveSoftVsStatic(points, contact.value(), 0.3f, 0.5f);
+            }
+        }
+    }
+}
+
+void SoftBody::SetGroundPlane(const Collision::GroundPlane& ground) {
+    groundPlane = ground;
+    hasGroundPlane = true;
+}
+
+void SoftBody::AddStaticCollider(const Collision::ConvexShape& shape) {
+    staticColliders.push_back(shape);
+}
+
+void SoftBody::ClearStaticColliders() {
+    staticColliders.clear();
 }
 
 void SoftBody::Draw(){

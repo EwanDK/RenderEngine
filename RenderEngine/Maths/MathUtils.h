@@ -15,6 +15,11 @@ inline bool nearZero(float val, float epsilon = 0.001f){
     return fabs(val)<=epsilon;
 }
 
+inline Vector3 SafeNormalize(Vector3 v, Vector3 fallback = {0, 1, 0}){
+    float len = Vector3Length(v);
+    return (len > 1e-6f) ? v * (1.0f / len) : fallback;
+}
+
 inline float cotan(float angle){
     return 1.0f / tanf(angle);
 }
@@ -256,7 +261,7 @@ public:
     }
 };
 
-const Matrix3 Matrix3::identity = [] {
+inline const Matrix3 Matrix3::identity = [] {
     Matrix3 m;
     m.mat[0][0] = 1.0f;
     m.mat[0][1] = 0.0f;

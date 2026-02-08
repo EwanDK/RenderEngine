@@ -119,7 +119,7 @@ $(ProjectDir)dependencies\glad\include;
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>IMGUI_IMPL_OPENGL_LOADER_GLAD</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\Maths;$(ProjectDir)dependencies\raylib;$(ProjectDir)dependencies\raylib\external</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\Maths;$(ProjectDir);$(ProjectDir)dependencies\raylib;$(ProjectDir)dependencies\raylib\external</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -159,6 +159,8 @@ $(ProjectDir)dependencies\glad\include;
     <ClCompile Include="RendererRaylib.cpp" />
     <ClCompile Include="SoftBody.cpp" />
     <ClCompile Include="SpectatorCamera.cpp" />
+    <ClCompile Include="Collision\GJK.cpp" />
+    <ClCompile Include="Collision\CollisionSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Maths\MathUtils.h" />
@@ -166,6 +168,8 @@ $(ProjectDir)dependencies\glad\include;
     <ClInclude Include="RendererRaylib.h" />
     <ClInclude Include="SoftBody.h" />
     <ClInclude Include="SpectatorCamera.h" />
+    <ClInclude Include="Collision\GJK.h" />
+    <ClInclude Include="Collision\CollisionSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Res\BasicMesh.frag" />
