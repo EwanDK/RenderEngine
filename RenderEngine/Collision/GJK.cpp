@@ -50,6 +50,19 @@ ConvexShape ConvexShapeFromMesh(const Mesh& mesh, std::vector<Vector3>& extracte
     return ConvexShapeFromPoints(extractedVerts.data(), (int)extractedVerts.size());
 }
 
+ConvexShape ConvexShapeFromMesh(const Mesh& mesh, Matrix transform, std::vector<Vector3>& extractedVerts) {
+    extractedVerts.resize(mesh.vertexCount);
+    for (int i = 0; i < mesh.vertexCount; i++) {
+        Vector3 local = {
+            mesh.vertices[i * 3],
+            mesh.vertices[i * 3 + 1],
+            mesh.vertices[i * 3 + 2]
+        };
+        extractedVerts[i] = Vector3Transform(local, transform);
+    }
+    return ConvexShapeFromPoints(extractedVerts.data(), (int)extractedVerts.size());
+}
+
 // ============================================================
 // GJK internals
 // ============================================================

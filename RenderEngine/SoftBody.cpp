@@ -47,7 +47,7 @@ SoftBody::SoftBody(){
                     Vector3{restPositions[hi*3], restPositions[hi*3+1], restPositions[hi*3+2]}
                 );
 
-                s.stiffness = 2.f;
+                s.stiffness = 100.f;
                 s.damping   = 0.5f;
                 springs.emplace_back(s);
             }
@@ -178,7 +178,7 @@ void SoftBody::Solve(float dt){
     }
 
     // 4. Shape matching
-    ApplyShapeMatching(0.0001f);
+    ApplyShapeMatching(.01f);
 
     // 5. Integrate velocity + position
     const float maxSpeed = 100.0f;
@@ -202,20 +202,9 @@ void SoftBody::Solve(float dt){
         Collision::ResolveGroundCollision(points, groundPlane, 0.3f, 0.85f);
     }
 
-    // 7. Static collider collision (GJK + EPA)
-    if (!staticColliders.empty()) {
-        positionCache.resize(points.size());
-        for (size_t i = 0; i < points.size(); i++) {
-            positionCache[i] = points[i].position;
-        }
-        Collision::ConvexShape softShape = Collision::ConvexShapeFromPoints(positionCache.data(), (int)positionCache.size());
-
-        for (auto& collider : staticColliders) {
-            auto contact = Collision::TestConvex(softShape, collider);
-            if (contact.has_value()) {
-                Collision::ResolveSoftVsStatic(points, contact.value(), 0.3f, 0.5f);
-            }
-        }
+    // 7. Static collider collision (per-particle GJK + EPA)
+    for (auto& collider : staticColliders) {
+        Collision::ResolveSoftVsStatic(points, collider, 0.3f, 0.5f);
     }
 }
 
@@ -230,6 +219,18 @@ void SoftBody::AddStaticCollider(const Collision::ConvexShape& shape) {
 
 void SoftBody::ClearStaticColliders() {
     staticColliders.clear();
+}
+
+void SoftBody::Translate(Vector3 offset) {
+    for (size_t i = 0; i < points.size(); i++) {
+        points[i].position += offset;
+    }
+    // Also shift rest positions so shape matching targets the new location
+    for (int i = 0; i < (int)points.size(); i++) {
+        restPositions[i * 3]     += offset.x;
+        restPositions[i * 3 + 1] += offset.y;
+        restPositions[i * 3 + 2] += offset.z;
+    }
 }
 
 void SoftBody::Draw(){

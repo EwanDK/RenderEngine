@@ -53,39 +53,37 @@ std::optional<CollisionResult> TestConvex(const ConvexShape& a, const ConvexShap
 
 void ResolveSoftVsStatic(
     std::vector<Point>& points,
-    const CollisionResult& contact,
+    const ConvexShape& staticShape,
     float restitution,
     float friction)
 {
     const float skinWidth = 0.01f;
 
-    // The contact plane: particles on the "wrong side" need correction.
-    // Plane defined by: dot(normal, p) = dot(normal, contactPoint)
-    float planeD = Vector3DotProduct(contact.normal, contact.contactPoint);
-
     for (size_t i = 0; i < points.size(); i++) {
-        float signedDist = Vector3DotProduct(contact.normal, points[i].position) - planeD;
+        // Test this single particle against the static shape
+        ConvexShape pointShape;
+        pointShape.vertices = &points[i].position;
+        pointShape.count = 1;
+        pointShape.center = points[i].position;
 
-        if (signedDist < 0.0f) {
-            // This particle penetrates the static shape
-            float penetration = -signedDist;
+        CollisionResult result = IntersectDetailed(pointShape, staticShape);
+        if (!result.collided) continue;
 
-            // Position correction: push out along contact normal
-            points[i].position += contact.normal * (penetration + skinWidth);
+        // Normal points from particle toward static shape — negate to push out
+        Vector3 pushDir = result.normal * -1.0f;
+        float depth = result.depth;
 
-            // Velocity impulse along collision normal
-            float vn = Vector3DotProduct(points[i].speed, contact.normal);
-            if (vn < 0.0f) {
-                // Remove normal velocity component and add restitution bounce
-                points[i].speed -= contact.normal * ((1.0f + restitution) * vn);
+        points[i].position += pushDir * (depth + skinWidth);
 
-                // Apply friction to tangential component
-                Vector3 vNormal = contact.normal * Vector3DotProduct(points[i].speed, contact.normal);
-                Vector3 vTangent = points[i].speed - vNormal;
-                float tangentLen = Vector3Length(vTangent);
-                if (tangentLen > 1e-6f) {
-                    points[i].speed = vNormal + vTangent * friction;
-                }
+        // Velocity response
+        float vn = Vector3DotProduct(points[i].speed, pushDir);
+        if (vn < 0.0f) {
+            points[i].speed -= pushDir * ((1.0f + restitution) * vn);
+
+            Vector3 vNormal = pushDir * Vector3DotProduct(points[i].speed, pushDir);
+            Vector3 vTangent = points[i].speed - vNormal;
+            if (Vector3Length(vTangent) > 1e-6f) {
+                points[i].speed = vNormal + vTangent * friction;
             }
         }
     }

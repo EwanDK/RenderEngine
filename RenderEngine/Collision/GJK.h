@@ -23,6 +23,9 @@ namespace Collision {
     // NOTE: returned shape owns no memory -- the extractedVerts output vector must stay alive
     ConvexShape ConvexShapeFromMesh(const Mesh& mesh, std::vector<Vector3>& extractedVerts);
 
+    // Build a ConvexShape from a raylib Mesh transformed to world space
+    ConvexShape ConvexShapeFromMesh(const Mesh& mesh, Matrix transform, std::vector<Vector3>& extractedVerts);
+
     // Result of a detailed collision query (GJK + EPA)
     struct CollisionResult {
         bool collided;

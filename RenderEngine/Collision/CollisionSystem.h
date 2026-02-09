@@ -34,12 +34,11 @@ namespace Collision {
         const ConvexShape& b
     );
 
-    // Apply collision response to soft body particles against a static shape.
-    // Uses the contact normal/depth to push penetrating particles out
-    // and apply velocity impulse.
+    // Per-particle collision response against a static convex shape.
+    // Tests each particle individually via GJK+EPA and pushes penetrating ones out.
     void ResolveSoftVsStatic(
         std::vector<Point>& points,
-        const CollisionResult& contact,
+        const ConvexShape& staticShape,
         float restitution = 0.3f,
         float friction = 0.5f
     );

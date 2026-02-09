@@ -40,6 +40,7 @@ public:
     void SetGroundPlane(const Collision::GroundPlane& ground);
     void AddStaticCollider(const Collision::ConvexShape& shape);
     void ClearStaticColliders();
+    void Translate(Vector3 offset);
 
     std::vector<Point>& GetPoints() { return points; }
     const std::vector<Point>& GetPoints() const { return points; }
@@ -53,5 +54,4 @@ private:
     bool hasGroundPlane = false;
     Collision::GroundPlane groundPlane{{0,1,0}, 0.0f};
     std::vector<Collision::ConvexShape> staticColliders;
-    std::vector<Vector3> positionCache;
 };
