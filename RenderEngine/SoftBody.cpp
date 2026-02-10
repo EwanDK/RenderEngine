@@ -96,24 +96,22 @@ void SoftBody::ClampSpringForce(Spring& spring) {
     float dist = Vector3Length(delta);
     if (dist < 1e-6f) return;
 
-    float minDist = 2.0f * spring.points[0]->radius;
-    float maxDist = 2.0f * spring.baseDistance;
+    float minDist = spring.baseDistance * 0.5f; // Prevent over-compression
+    float maxDist = spring.baseDistance * 1.5f; // Prevent over-stretching
 
     if (dist < minDist || dist > maxDist) {
-        delta=Vector3Normalize(delta);
-
+        Vector3 dir = delta / dist; // Normalized
         float clampedDist = Clamp(dist, minDist, maxDist);
-        Vector3 target = spring.points[0]->position + delta * clampedDist;
-
+        
         // Correction vector (split between points, inversely to mass)
+        float correction = (clampedDist - dist) * 0.5f;
+        
         float totalMass = spring.points[0]->mass + spring.points[1]->mass;
         float ratioA = spring.points[1]->mass / totalMass;
         float ratioB = spring.points[0]->mass / totalMass;
 
-        Vector3 correction = (target - spring.points[1]->position);
-
-        spring.points[0]->position-=correction*ratioA;
-        spring.points[1]->position-=correction*ratioB;
+        spring.points[0]->position -= dir * correction*ratioA;
+        spring.points[1]->position += dir * correction*ratioB;
 
         // Optional: zero spring force to prevent snapback
         spring.points[0]->force = Vector3();
@@ -121,8 +119,7 @@ void SoftBody::ClampSpringForce(Spring& spring) {
     }
 }
 
-void SoftBody::ApplyShapeMatching(float stiffness)
-{
+void SoftBody::ApplyShapeMatching(float stiffness, float dt){
     if (points.empty() || model.meshes[0].vertexCount != points.size())return;
 
     // Compute current and rest centers of mass
@@ -147,11 +144,12 @@ void SoftBody::ApplyShapeMatching(float stiffness)
     // Compute optimal rotation matrix
     Matrix3 R = A.orthonormalized();
 
+    float effectiveStiffness = 1.0f - pow(1.0f - stiffness, dt * 60.0f);
     // Pull current points toward rotated rest pose
     for (size_t i = 0; i < points.size(); ++i) {
         Vector3 q = Vector3(restPositions[i*3],restPositions[i*3+1],restPositions[i*3+2]) - centerRest;
         Vector3 goal = centerNow + R.getColumn(0) * q.x + R.getColumn(1) * q.y + R.getColumn(2) * q.z;
-        Vector3 correction = (goal - points[i].position) * stiffness;
+        Vector3 correction = (goal - points[i].position) * effectiveStiffness;
         points[i].position+=correction;
     }
 }
@@ -160,51 +158,53 @@ void SoftBody::ApplyShapeMatching(float stiffness)
 
 void SoftBody::Solve(float dt){
     // Clamp dt to prevent tunneling on frame stutters
-    if (dt > 1.0f / 30.0f) dt = 1.0f / 30.0f;
+    dt = std::min(dt, 1.0f / 30.0f);
 
-    // 1. Apply gravity
+    // 1. Zero forces
     for(int i=0;i<points.size();i++){
-        points[i].force = Vector3{0.0f, -9.81f * points[i].mass, 0.0f};
+        points[i].force = Vector3();
     }
 
     // 2. Spring forces
     for(int i=0;i<springs.size();i++){
         SolveSpring(springs[i]);
     }
-
-    // 3. Spring distance constraints
-    for(int i=0;i<springs.size();i++){
-        ClampSpringForce(springs[i]);
+    
+    // 3. Integrate velocity
+    const float damping = 0.98f; // Per-frame damping at 60fps baseline
+    const float dampingFactor = powf(damping, dt * 60.0f); // Frame-rate independent
+    const Vector3 gravity = {0.0f, -9.81f, 0.0f};
+    for(auto& p : points){
+        p.speed += p.force * dt * (1.0f / p.mass); // Spring forces only
+        p.speed *= dampingFactor;                    // Damp spring oscillation
+        p.speed += gravity * dt;                     // Gravity added undamped
     }
 
-    // 4. Shape matching
-    ApplyShapeMatching(.01f);
+    // 4. Integrate position
+    for(auto& p : points){
+        p.position += p.speed * dt;
+    }
 
-    // 5. Integrate velocity + position
-    const float maxSpeed = 100.0f;
-    const float lowSpeedThreshold=2.f;
-
-    for(int i=0;i<points.size();i++){
-        if(Vector3Length(points[i].force)<lowSpeedThreshold)points[i].force=Vector3();
-
-        points[i].speed+=points[i].force*dt * (1/points[i].mass);
-
-        if (Vector3Length(points[i].speed) > maxSpeed) {
-            points[i].speed=Vector3Normalize(points[i].speed);
-            points[i].speed *= maxSpeed;
+    // 5. Position-based constraints (iterate multiple times for stability)
+    const int constraintIterations = 3;
+    for(int iter = 0; iter < constraintIterations; iter++){
+        // Spring length constraints
+        for(auto& spring : springs){
+            ClampSpringForce(spring);
         }
-        Vector3 tSpeed = points[i].speed*dt;
-        points[i].position+=tSpeed;
-    }
-
-    // 6. Collision resolution (after integration, position-based)
-    if (hasGroundPlane) {
-        Collision::ResolveGroundCollision(points, groundPlane, 0.3f, 0.85f);
-    }
-
-    // 7. Static collider collision (per-particle GJK + EPA)
-    for (auto& collider : staticColliders) {
-        Collision::ResolveSoftVsStatic(points, collider, 0.3f, 0.5f);
+        
+        // Shape matching (with dt scaling)
+        ApplyShapeMatching(0.01f, dt);
+        
+        // Ground collision
+        if (hasGroundPlane) {
+            Collision::ResolveGroundCollision(points, groundPlane, 0.3f, 0.85f);
+        }
+        
+        // Static colliders
+        for (auto& collider : staticColliders) {
+            Collision::ResolveSoftVsStatic(points, collider, 0.3f, 0.5f);
+        }
     }
 }
 

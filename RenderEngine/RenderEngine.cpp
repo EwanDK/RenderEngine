@@ -35,7 +35,7 @@ int main(int, char**)
     Matrix cubeTransform = MatrixTranslate(cubePos.x, cubePos.y, cubePos.z);
     Collision::ConvexShape cubeShape = Collision::ConvexShapeFromMesh(cubeMesh, cubeTransform, cubeVerts);
     soft.AddStaticCollider(cubeShape);
-    SetTargetFPS(60);
+    //SetTargetFPS(60);
 
     while (!WindowShouldClose())
     {

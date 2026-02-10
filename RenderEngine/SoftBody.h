@@ -29,7 +29,7 @@ public:
     SoftBody();
     void SolveSpring(Spring& spring);
     void ClampSpringForce(Spring& spring);
-    void ApplyShapeMatching(float stiffness);
+    void ApplyShapeMatching(float stiffness, float dt);
     void Solve(float dt);
     void Draw();
     void RecomputeNormals(Mesh& mesh);
