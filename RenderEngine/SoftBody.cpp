@@ -62,6 +62,9 @@ SoftBody::SoftBody(){
 
 
 
+    // Build convex clusters for broadphase collision
+    BuildClusters(6);
+
     //UnloadMesh(restMesh);
 }
 
@@ -201,9 +204,15 @@ void SoftBody::Solve(float dt){
             Collision::ResolveGroundCollision(points, groundPlane, 0.3f, 0.85f);
         }
         
-        // Static colliders
+        // Static colliders (cluster broadphase + per-particle narrowphase)
+        UpdateClusterHulls();
         for (auto& collider : staticColliders) {
-            Collision::ResolveSoftVsStatic(points, collider, 0.3f, 0.5f);
+            for (auto& cluster : clusters) {
+                if (cluster.shape.count > 0 && Collision::Intersect(cluster.shape, collider)) {
+                    Collision::ResolveSoftVsStaticSubset(
+                        points, cluster.pointIndices, collider, 0.3f, 0.5f);
+                }
+            }
         }
     }
 }
@@ -219,6 +228,15 @@ void SoftBody::AddStaticCollider(const Collision::ConvexShape& shape) {
 
 void SoftBody::ClearStaticColliders() {
     staticColliders.clear();
+}
+
+void SoftBody::BuildClusters(int k) {
+    clusters = Collision::BuildClusters(restPositions, static_cast<int>(points.size()), k);
+    Collision::UpdateClusterHulls(clusters, points);
+}
+
+void SoftBody::UpdateClusterHulls() {
+    Collision::UpdateClusterHulls(clusters, points);
 }
 
 void SoftBody::Translate(Vector3 offset) {

@@ -89,4 +89,40 @@ void ResolveSoftVsStatic(
     }
 }
 
+void ResolveSoftVsStaticSubset(
+    std::vector<Point>& points,
+    const std::vector<int>& indices,
+    const ConvexShape& staticShape,
+    float restitution,
+    float friction)
+{
+    const float skinWidth = 0.01f;
+
+    for (int i : indices) {
+        ConvexShape pointShape;
+        pointShape.vertices = &points[i].position;
+        pointShape.count = 1;
+        pointShape.center = points[i].position;
+
+        CollisionResult result = IntersectDetailed(pointShape, staticShape);
+        if (!result.collided) continue;
+
+        Vector3 pushDir = result.normal * -1.0f;
+        float depth = result.depth;
+
+        points[i].position += pushDir * (depth + skinWidth);
+
+        float vn = Vector3DotProduct(points[i].speed, pushDir);
+        if (vn < 0.0f) {
+            points[i].speed -= pushDir * ((1.0f + restitution) * vn);
+
+            Vector3 vNormal = pushDir * Vector3DotProduct(points[i].speed, pushDir);
+            Vector3 vTangent = points[i].speed - vNormal;
+            if (Vector3Length(vTangent) > 1e-6f) {
+                points[i].speed = vNormal + vTangent * friction;
+            }
+        }
+    }
+}
+
 } // namespace Collision

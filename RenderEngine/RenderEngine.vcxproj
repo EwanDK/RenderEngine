@@ -161,6 +161,7 @@ $(ProjectDir)dependencies\glad\include;
     <ClCompile Include="SpectatorCamera.cpp" />
     <ClCompile Include="Collision\GJK.cpp" />
     <ClCompile Include="Collision\CollisionSystem.cpp" />
+    <ClCompile Include="Collision\ConvexClustering.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Maths\MathUtils.h" />
@@ -170,6 +171,7 @@ $(ProjectDir)dependencies\glad\include;
     <ClInclude Include="SpectatorCamera.h" />
     <ClInclude Include="Collision\GJK.h" />
     <ClInclude Include="Collision\CollisionSystem.h" />
+    <ClInclude Include="Collision\ConvexClustering.h" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Res\BasicMesh.frag" />

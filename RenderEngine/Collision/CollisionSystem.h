@@ -43,4 +43,13 @@ namespace Collision {
         float friction = 0.5f
     );
 
+    // Per-particle collision for a subset of particles (used by cluster broadphase).
+    void ResolveSoftVsStaticSubset(
+        std::vector<Point>& points,
+        const std::vector<int>& indices,
+        const ConvexShape& staticShape,
+        float restitution = 0.3f,
+        float friction = 0.5f
+    );
+
 } // namespace Collision
