@@ -43,13 +43,21 @@ namespace Collision {
         float friction = 0.5f
     );
 
+    // Debug contact info for visualization
+    struct DebugContact {
+        Vector3 position;
+        Vector3 normal;
+        float depth;
+    };
+
     // Per-particle collision for a subset of particles (used by cluster broadphase).
     void ResolveSoftVsStaticSubset(
         std::vector<Point>& points,
         const std::vector<int>& indices,
         const ConvexShape& staticShape,
         float restitution = 0.3f,
-        float friction = 0.5f
+        float friction = 0.5f,
+        std::vector<DebugContact>* debugContacts = nullptr
     );
 
 } // namespace Collision

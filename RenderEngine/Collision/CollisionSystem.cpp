@@ -94,7 +94,8 @@ void ResolveSoftVsStaticSubset(
     const std::vector<int>& indices,
     const ConvexShape& staticShape,
     float restitution,
-    float friction)
+    float friction,
+    std::vector<DebugContact>* debugContacts)
 {
     const float skinWidth = 0.01f;
 
@@ -121,6 +122,10 @@ void ResolveSoftVsStaticSubset(
             if (Vector3Length(vTangent) > 1e-6f) {
                 points[i].speed = vNormal + vTangent * friction;
             }
+        }
+
+        if (debugContacts) {
+            debugContacts->push_back({points[i].position, pushDir, depth});
         }
     }
 }

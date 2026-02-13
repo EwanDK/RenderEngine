@@ -189,28 +189,42 @@ void SoftBody::Solve(float dt){
     }
 
     // 5. Position-based constraints (iterate multiple times for stability)
+    debugContacts.clear();
     const int constraintIterations = 3;
     for(int iter = 0; iter < constraintIterations; iter++){
+        bool lastIter = (iter == constraintIterations - 1);
+
         // Spring length constraints
         for(auto& spring : springs){
             ClampSpringForce(spring);
         }
-        
+
         // Shape matching (with dt scaling)
         ApplyShapeMatching(0.01f, dt);
-        
+
         // Ground collision
         if (hasGroundPlane) {
             Collision::ResolveGroundCollision(points, groundPlane, 0.3f, 0.85f);
+
+            // Capture ground contacts on last iteration
+            if (lastIter) {
+                for (auto& p : points) {
+                    float signedDist = Vector3DotProduct(groundPlane.normal, p.position) - groundPlane.height;
+                    if (signedDist < 2.0f) {
+                        debugContacts.push_back({p.position, groundPlane.normal, std::max(0.0f, 2.0f - signedDist)});
+                    }
+                }
+            }
         }
-        
+
         // Static colliders (cluster broadphase + per-particle narrowphase)
         UpdateClusterHulls();
         for (auto& collider : staticColliders) {
             for (auto& cluster : clusters) {
                 if (cluster.shape.count > 0 && Collision::Intersect(cluster.shape, collider)) {
                     Collision::ResolveSoftVsStaticSubset(
-                        points, cluster.pointIndices, collider, 0.3f, 0.5f);
+                        points, cluster.pointIndices, collider, 0.3f, 0.5f,
+                        lastIter ? &debugContacts : nullptr);
                 }
             }
         }

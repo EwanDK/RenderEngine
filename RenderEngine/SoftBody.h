@@ -47,6 +47,9 @@ public:
 
     std::vector<Point>& GetPoints() { return points; }
     const std::vector<Point>& GetPoints() const { return points; }
+    const std::vector<Spring>& GetSprings() const { return springs; }
+    const std::vector<Collision::ConvexCluster>& GetClusters() const { return clusters; }
+    const std::vector<Collision::DebugContact>& GetDebugContacts() const { return debugContacts; }
 
 private:
     std::vector<Spring> springs;
@@ -58,4 +61,5 @@ private:
     Collision::GroundPlane groundPlane{{0,1,0}, 0.0f};
     std::vector<Collision::ConvexShape> staticColliders;
     std::vector<Collision::ConvexCluster> clusters;
+    std::vector<Collision::DebugContact> debugContacts;
 };
