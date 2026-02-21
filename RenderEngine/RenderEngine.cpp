@@ -4,6 +4,8 @@
 #include "Collision/CollisionSystem.h"
 #include "Collision/ConvexClustering.h"
 #include "Collision/GJK.h"
+#include "Input/InputSystem.h"
+#include "SpectatorCamera.h"
 #include <vector>
 #include <cmath>
 
@@ -11,12 +13,7 @@ int main(int, char**)
 {
     InitWindow(1280,720,"Soft Body Simulation");
 
-    Camera camera = { 0 };
-    camera.position = Vector3{ 0.0f, 150.0f, 300.0f };
-    camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
-    camera.up = Vector3{ 0.0f, 1.0f, 0.0f };
-    camera.fovy = 45.0f;
-    camera.projection = CAMERA_PERSPECTIVE;
+    SpectatorCamera camera({ 0.0f, 150.0f, 0.0f });
 
     SoftBody soft = SoftBody();
     soft.Translate({0.0f, 100.0f, 0.0f}); // Start above the cube so it falls onto it
@@ -48,20 +45,33 @@ int main(int, char**)
     const Color clusterColors[] = {RED, GREEN, BLUE, YELLOW, PURPLE, ORANGE};
     const int numClusterColors = 6;
 
+    Input::InputSystem inputSystem;
+
     while (!WindowShouldClose())
     {
-        // Toggle debug flags
-        if (IsKeyPressed(KEY_F1)) showClusters  = !showClusters;
-        if (IsKeyPressed(KEY_F2)) showParticles = !showParticles;
-        if (IsKeyPressed(KEY_F3)) showContacts  = !showContacts;
-        if (IsKeyPressed(KEY_F4)) showSprings   = !showSprings;
+        // Poll input system and process actions
+        auto actions = inputSystem.Poll();
+        float dt = GetFrameTime();
+
+        camera.Update(actions, dt);
+
+        for (const auto& a : actions) {
+            if (a.type != Input::InputEvent::Pressed) continue;
+            switch (a.action) {
+                case Input::ActionID::ToggleClusters:  showClusters  = !showClusters;  break;
+                case Input::ActionID::ToggleParticles: showParticles = !showParticles; break;
+                case Input::ActionID::ToggleContacts:  showContacts  = !showContacts;  break;
+                case Input::ActionID::ToggleSprings:   showSprings   = !showSprings;   break;
+                default: break;
+            }
+        }
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
-        BeginMode3D(camera);
+        BeginMode3D(camera.GetCamera());
 
-        soft.Update(GetFrameTime());
+        soft.Update(dt);
 
         // Draw static cube obstacle
         DrawModel(cubeModel, cubePos, 1.0f, GRAY);

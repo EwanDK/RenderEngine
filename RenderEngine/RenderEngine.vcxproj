@@ -162,9 +162,11 @@ $(ProjectDir)dependencies\glad\include;
     <ClCompile Include="Collision\GJK.cpp" />
     <ClCompile Include="Collision\CollisionSystem.cpp" />
     <ClCompile Include="Collision\ConvexClustering.cpp" />
+    <ClCompile Include="Input\InputSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Maths\MathUtils.h" />
+    <ClInclude Include="Input\InputSystem.h" />
     <ClInclude Include="MeshRessource.h" />
     <ClInclude Include="RendererRaylib.h" />
     <ClInclude Include="SoftBody.h" />
