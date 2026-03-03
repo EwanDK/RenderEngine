@@ -10,6 +10,13 @@ struct Point{
     float mass;
     const float radius = 1.f;
     int index;
+    bool isStatic = false;
+};
+
+struct Strut {
+    Point* a;
+    Point* b;
+    float distance; // enforced exact distance
 };
 
 struct Spring{
@@ -30,7 +37,9 @@ public:
     SoftBody();
     void SolveSpring(Spring& spring);
     void ClampSpringForce(Spring& spring);
+    void SolveStrut(Strut& strut);
     void ApplyShapeMatching(float stiffness, float dt);
+    void AddStrut(int a, int b);
     void Solve(float dt);
     void Draw();
     void RecomputeNormals(Mesh& mesh);
@@ -48,11 +57,13 @@ public:
     std::vector<Point>& GetPoints() { return points; }
     const std::vector<Point>& GetPoints() const { return points; }
     const std::vector<Spring>& GetSprings() const { return springs; }
+    const std::vector<Strut>&  GetStruts()  const { return struts; }
     const std::vector<Collision::ConvexCluster>& GetClusters() const { return clusters; }
     const std::vector<Collision::DebugContact>& GetDebugContacts() const { return debugContacts; }
 
 private:
     std::vector<Spring> springs;
+    std::vector<Strut> struts;
     std::vector<Point> points;
     float* restPositions;
 

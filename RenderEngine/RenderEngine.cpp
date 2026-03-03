@@ -117,7 +117,7 @@ int main(int, char**)
             }
         }
 
-        // F4: Springs colored by stretch ratio
+        // F4: Springs colored by stretch ratio, struts in cyan
         if (showSprings) {
             const auto& springs = soft.GetSprings();
             for (const auto& s : springs) {
@@ -129,6 +129,10 @@ int main(int, char**)
                 unsigned char g = (unsigned char)((1.0f - t) * 255.0f);
                 Color col = {r, g, 0, 255};
                 DrawLine3D(s.points[0]->position, s.points[1]->position, col);
+            }
+            const auto& struts = soft.GetStruts();
+            for (const auto& st : struts) {
+                DrawLine3D(st.a->position, st.b->position, SKYBLUE);
             }
         }
 

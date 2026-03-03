@@ -99,27 +99,58 @@ void SoftBody::ClampSpringForce(Spring& spring) {
     float dist = Vector3Length(delta);
     if (dist < 1e-6f) return;
 
-    float minDist = spring.baseDistance * 0.5f; // Prevent over-compression
-    float maxDist = spring.baseDistance * 1.5f; // Prevent over-stretching
+    float minDist = spring.baseDistance * 0.5f;
+    float maxDist = spring.baseDistance * 1.5f;
 
     if (dist < minDist || dist > maxDist) {
-        Vector3 dir = delta / dist; // Normalized
+        Vector3 dir = delta / dist;
         float clampedDist = Clamp(dist, minDist, maxDist);
-        
-        // Correction vector (split between points, inversely to mass)
-        float correction = (clampedDist - dist) * 0.5f;
-        
-        float totalMass = spring.points[0]->mass + spring.points[1]->mass;
-        float ratioA = spring.points[1]->mass / totalMass;
-        float ratioB = spring.points[0]->mass / totalMass;
+        float correction = clampedDist - dist;
 
-        spring.points[0]->position -= dir * correction*ratioA;
-        spring.points[1]->position += dir * correction*ratioB;
+        float wA = spring.points[0]->isStatic ? 0.f : 1.f / spring.points[0]->mass;
+        float wB = spring.points[1]->isStatic ? 0.f : 1.f / spring.points[1]->mass;
+        float wSum = wA + wB;
+        if (wSum < 1e-10f) return;
 
-        // Optional: zero spring force to prevent snapback
-        spring.points[0]->force = Vector3();
-        spring.points[1]->force = Vector3();
+        spring.points[0]->position -= dir * correction * (wA / wSum);
+        spring.points[1]->position += dir * correction * (wB / wSum);
+
+        if (!spring.points[0]->isStatic) spring.points[0]->force = Vector3();
+        if (!spring.points[1]->isStatic) spring.points[1]->force = Vector3();
     }
+}
+
+void SoftBody::SolveStrut(Strut& strut) {
+    Vector3 delta = strut.b->position - strut.a->position;
+    float len = Vector3Length(delta);
+    if (len < 1e-6f) return;
+
+    float err = (len - strut.distance) / len; // signed: >0 too far, <0 too close
+
+    float wA = strut.a->isStatic ? 0.f : 1.f / strut.a->mass;
+    float wB = strut.b->isStatic ? 0.f : 1.f / strut.b->mass;
+    float wSum = wA + wB;
+    if (wSum < 1e-10f) return;
+
+    // Positional correction
+    Vector3 correction = delta * err;
+    strut.a->position += correction * (wA / wSum);
+    strut.b->position -= correction * (wB / wSum);
+
+    // Kill relative velocity along the constraint axis (prevents pumping)
+    Vector3 n = delta * (1.f / len);
+    float relVel = Vector3DotProduct(strut.b->speed - strut.a->speed, n);
+    Vector3 velCorr = n * relVel;
+    strut.a->speed += velCorr * (wA / wSum);
+    strut.b->speed -= velCorr * (wB / wSum);
+}
+
+void SoftBody::AddStrut(int a, int b) {
+    Strut s;
+    s.a = &points[a];
+    s.b = &points[b];
+    s.distance = Vector3Distance(points[a].position, points[b].position);
+    struts.emplace_back(s);
 }
 
 void SoftBody::ApplyShapeMatching(float stiffness, float dt){
@@ -178,6 +209,7 @@ void SoftBody::Solve(float dt){
     const float dampingFactor = powf(damping, dt * 60.0f); // Frame-rate independent
     const Vector3 gravity = {0.0f, -9.81f, 0.0f};
     for(auto& p : points){
+        if (p.isStatic) continue;
         p.speed += p.force * dt * (1.0f / p.mass); // Spring forces only
         p.speed *= dampingFactor;                    // Damp spring oscillation
         p.speed += gravity * dt;                     // Gravity added undamped
@@ -185,6 +217,7 @@ void SoftBody::Solve(float dt){
 
     // 4. Integrate position
     for(auto& p : points){
+        if (p.isStatic) continue;
         p.position += p.speed * dt;
     }
 
@@ -197,6 +230,11 @@ void SoftBody::Solve(float dt){
         // Spring length constraints
         for(auto& spring : springs){
             ClampSpringForce(spring);
+        }
+
+        // Rigid struts (exact distance constraints)
+        for(auto& strut : struts){
+            SolveStrut(strut);
         }
 
         // Shape matching (with dt scaling)
