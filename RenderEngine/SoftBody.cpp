@@ -153,6 +153,39 @@ void SoftBody::AddStrut(int a, int b) {
     struts.emplace_back(s);
 }
 
+void SoftBody::AddMuscle(int a, int b, float stiffness, float damping, float muscleForce, int group) {
+    Spring s;
+    s.points[0]   = &points[a];
+    s.points[1]   = &points[b];
+    s.baseDistance = Vector3Distance(points[a].position, points[b].position);
+    s.stiffness   = stiffness;
+    s.damping     = damping;
+    s.muscleForce = muscleForce;
+    s.muscleGroup = group;
+    springs.emplace_back(s);
+}
+
+void SoftBody::SetMuscleGroup(int group, bool active) {
+    if (active) activeMuscleGroups.insert(group);
+    else        activeMuscleGroups.erase(group);
+}
+
+void SoftBody::ApplyMuscleForces() {
+    for (auto& s : springs) {
+        if (s.muscleGroup < 0) continue;
+        if (activeMuscleGroups.find(s.muscleGroup) == activeMuscleGroups.end()) continue;
+
+        Vector3 ab = s.points[1]->position - s.points[0]->position;
+        float len = Vector3Length(ab);
+        if (len < 1e-6f) continue;
+        Vector3 dir = ab * (1.f / len);
+
+        // Positive muscleForce = compression (pull endpoints toward each other)
+        s.points[0]->force += dir *  s.muscleForce;
+        s.points[1]->force += dir * -s.muscleForce;
+    }
+}
+
 void SoftBody::ApplyShapeMatching(float stiffness, float dt){
     if (points.empty() || model.meshes[0].vertexCount != points.size())return;
 
@@ -203,7 +236,10 @@ void SoftBody::Solve(float dt){
     for(int i=0;i<springs.size();i++){
         SolveSpring(springs[i]);
     }
-    
+
+    // 2b. Muscle activation forces
+    ApplyMuscleForces();
+
     // 3. Integrate velocity
     const float damping = 0.98f; // Per-frame damping at 60fps baseline
     const float dampingFactor = powf(damping, dt * 60.0f); // Frame-rate independent

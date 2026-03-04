@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <set>
 
 #include "raylib.h"
 
@@ -24,7 +25,10 @@ struct Spring{
     float baseDistance;
     float stiffness;
     float damping;
-    int virtualDistance=0;
+    int virtualDistance = 0;
+    // Muscle fields (0 / -1 = passive spring)
+    float muscleForce = 0.f; // compression force applied when group is active (>0 compress, <0 extend)
+    int muscleGroup   = -1;  // -1 = not a muscle
 };
 
 // Include collision after Point is fully defined (these headers forward-declare Point)
@@ -40,6 +44,8 @@ public:
     void SolveStrut(Strut& strut);
     void ApplyShapeMatching(float stiffness, float dt);
     void AddStrut(int a, int b);
+    void AddMuscle(int a, int b, float stiffness, float damping, float muscleForce, int group);
+    void SetMuscleGroup(int group, bool active);
     void Solve(float dt);
     void Draw();
     void RecomputeNormals(Mesh& mesh);
@@ -62,10 +68,13 @@ public:
     const std::vector<Collision::DebugContact>& GetDebugContacts() const { return debugContacts; }
 
 private:
+    void ApplyMuscleForces();
+
     std::vector<Spring> springs;
     std::vector<Strut> struts;
     std::vector<Point> points;
     float* restPositions;
+    std::set<int> activeMuscleGroups;
 
     // Collision data
     bool hasGroundPlane = false;
