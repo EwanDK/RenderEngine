@@ -6,8 +6,8 @@
 #include "raymath.h"
 #include "MathUtils.h"
 
-SoftBody::SoftBody(){
-    
+SoftBody::SoftBody(ConstraintMode mode) : constraintMode(mode) {
+
     Mesh restMesh = { 0 };
 
     GenerateUvSphere(10, 10, 60.0f,&restMesh.vertices,&restMesh.normals,&restMesh.indices,&restMesh.vertexCount,&restMesh.triangleCount);
@@ -64,6 +64,21 @@ SoftBody::SoftBody(){
 
     // Build convex clusters for broadphase collision
     BuildClusters(6);
+
+    // Pre-allocate gradient buffer and compute rest volume for volume preservation
+    gradientBuffer.resize(points.size());
+    {
+        unsigned short* tri = model.meshes[0].indices;
+        int triCount = model.meshes[0].triangleCount;
+        float vol = 0.f;
+        for (int i = 0; i < triCount; i++) {
+            Vector3 v0 = points[tri[i*3]].position;
+            Vector3 v1 = points[tri[i*3+1]].position;
+            Vector3 v2 = points[tri[i*3+2]].position;
+            vol += Vector3DotProduct(v0, Vector3CrossProduct(v1, v2));
+        }
+        restVolume = fabsf(vol) / 6.f;
+    }
 
     //UnloadMesh(restMesh);
 }
@@ -223,6 +238,53 @@ void SoftBody::ApplyShapeMatching(float stiffness, float dt){
 
 
 
+void SoftBody::ApplyVolumePreservation(float stiffness, float dt) {
+    const auto& mesh = model.meshes[0];
+    const int triCount = mesh.triangleCount;
+    const int vertCount = (int)points.size();
+    if (triCount == 0) return;
+
+    // Compute current signed volume via divergence theorem
+    float vol = 0.f;
+    for (int i = 0; i < triCount; i++) {
+        int i0 = mesh.indices[i*3], i1 = mesh.indices[i*3+1], i2 = mesh.indices[i*3+2];
+        Vector3 v0 = points[i0].position, v1 = points[i1].position, v2 = points[i2].position;
+        vol += Vector3DotProduct(v0, Vector3CrossProduct(v1, v2));
+    }
+    vol = fabsf(vol) / 6.f;
+
+    float C = vol - restVolume; // constraint: C = 0 means volume preserved
+    if (fabsf(C) < 1e-6f) return;
+
+    // Accumulate per-vertex volume gradients: ∂V/∂vᵢ = (1/6) Σ (vⱼ × vₖ) over triangles containing vᵢ
+    for (auto& g : gradientBuffer) g = Vector3();
+    for (int i = 0; i < triCount; i++) {
+        int i0 = mesh.indices[i*3], i1 = mesh.indices[i*3+1], i2 = mesh.indices[i*3+2];
+        Vector3 v0 = points[i0].position, v1 = points[i1].position, v2 = points[i2].position;
+        gradientBuffer[i0] += Vector3CrossProduct(v1, v2) * (1.f / 6.f);
+        gradientBuffer[i1] += Vector3CrossProduct(v2, v0) * (1.f / 6.f);
+        gradientBuffer[i2] += Vector3CrossProduct(v0, v1) * (1.f / 6.f);
+    }
+
+    // PBD: λ = -C / Σ wᵢ|∇Cᵢ|²
+    float denom = 0.f;
+    for (int i = 0; i < vertCount; i++) {
+        if (points[i].isStatic) continue;
+        float w = 1.f / points[i].mass;
+        denom += w * Vector3DotProduct(gradientBuffer[i], gradientBuffer[i]);
+    }
+    if (denom < 1e-10f) return;
+
+    float effectiveStiffness = 1.0f - powf(1.0f - stiffness, dt * 60.0f);
+    float lambda = -effectiveStiffness * C / denom;
+
+    for (int i = 0; i < vertCount; i++) {
+        if (points[i].isStatic) continue;
+        float w = 1.f / points[i].mass;
+        points[i].position += gradientBuffer[i] * (lambda * w);
+    }
+}
+
 void SoftBody::Solve(float dt){
     // Clamp dt to prevent tunneling on frame stutters
     dt = std::min(dt, 1.0f / 30.0f);
@@ -273,8 +335,11 @@ void SoftBody::Solve(float dt){
             SolveStrut(strut);
         }
 
-        // Shape matching (with dt scaling)
-        ApplyShapeMatching(0.01f, dt);
+        // Shape matching or volume preservation
+        if (constraintMode == ConstraintMode::ShapeMatching)
+            ApplyShapeMatching(0.01f, dt);
+        else
+            ApplyVolumePreservation(0.5f, dt);
 
         // Ground collision
         if (hasGroundPlane) {

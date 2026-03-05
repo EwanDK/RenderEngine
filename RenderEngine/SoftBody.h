@@ -38,11 +38,14 @@ struct Spring{
 class SoftBody
 {
 public:
-    SoftBody();
+    enum class ConstraintMode { ShapeMatching, VolumePreservation };
+
+    SoftBody(ConstraintMode mode = ConstraintMode::ShapeMatching);
     void SolveSpring(Spring& spring);
     void ClampSpringForce(Spring& spring);
     void SolveStrut(Strut& strut);
     void ApplyShapeMatching(float stiffness, float dt);
+    void ApplyVolumePreservation(float stiffness, float dt);
     void AddStrut(int a, int b);
     void AddMuscle(int a, int b, float stiffness, float damping, float muscleForce, int group);
     void SetMuscleGroup(int group, bool active);
@@ -60,6 +63,8 @@ public:
     void BuildClusters(int k = 6);
     void UpdateClusterHulls();
 
+    ConstraintMode GetConstraintMode() const { return constraintMode; }
+
     std::vector<Point>& GetPoints() { return points; }
     const std::vector<Point>& GetPoints() const { return points; }
     const std::vector<Spring>& GetSprings() const { return springs; }
@@ -75,6 +80,10 @@ private:
     std::vector<Point> points;
     float* restPositions;
     std::set<int> activeMuscleGroups;
+
+    ConstraintMode constraintMode;
+    float restVolume = 0.f;
+    std::vector<Vector3> gradientBuffer;
 
     // Collision data
     bool hasGroundPlane = false;
