@@ -6,6 +6,74 @@
 #include "raymath.h"
 #include "MathUtils.h"
 
+// ---- SpringDef / StrutDef convenience constructors ----
+
+Spring::Spring(const SpringDef& def, std::vector<Point>& pts) {
+    points[0]    = &pts[def.index1];
+    points[1]    = &pts[def.index2];
+    baseDistance = def.baseDistance;
+    stiffness    = def.stiffness;
+    damping      = def.damping;
+    muscleForce  = def.muscleForce;
+    muscleGroup  = def.muscleGroup;
+}
+
+Strut::Strut(const StrutDef& def, std::vector<Point>& pts) {
+    a        = &pts[def.index1];
+    b        = &pts[def.index2];
+    distance = def.distance;
+}
+
+SoftBody::SoftBody(Mesh baseMesh, const std::vector<SpringDef>& springDefs, const std::vector<StrutDef>& strutDefs, ConstraintMode mode, const std::vector<bool>& staticPoints,const Mesh* restMesh,float compressionFactor) : constraintMode(mode) {
+
+    UploadMesh(&baseMesh, false);
+    model = LoadModelFromMesh(baseMesh);
+
+    const int vertCount = baseMesh.vertexCount;
+
+    // Build points
+    for (int i = 0; i < vertCount; i++) {
+        bool isStatic = (!staticPoints.empty() && i < (int)staticPoints.size()) && staticPoints[i];
+        points.emplace_back(Point{
+            {baseMesh.vertices[i*3], baseMesh.vertices[i*3+1], baseMesh.vertices[i*3+2]},
+            Vector3(), Vector3(), 1.f, 1.f, i, isStatic
+        });
+    }
+
+    // Rest positions: copy provided rest mesh or fall back to baseMesh
+    restPositions = (float*)malloc(vertCount * 3 * sizeof(float));
+    const float* restSrc = (restMesh && restMesh->vertices) ? restMesh->vertices : baseMesh.vertices;
+    memcpy(restPositions, restSrc, vertCount * 3 * sizeof(float));
+
+    // Build springs and struts
+    springs.reserve(springDefs.size());
+    for (const auto& def : springDefs)
+        springs.emplace_back(def, points);
+
+    struts.reserve(strutDefs.size());
+    for (const auto& def : strutDefs)
+        struts.emplace_back(def, points);
+
+    // Clusters and gradient buffer
+    BuildClusters(6);
+    gradientBuffer.resize(points.size());
+
+    // Rest volume (scale by compressionFactor so the caller can describe a pre-compressed state)
+    {
+        unsigned short* tri  = model.meshes[0].indices;
+        int             triCount = model.meshes[0].triangleCount;
+        float vol = 0.f;
+        for (int i = 0; i < triCount; i++) {
+            Vector3 v0 = points[tri[i*3]].position;
+            Vector3 v1 = points[tri[i*3+1]].position;
+            Vector3 v2 = points[tri[i*3+2]].position;
+            vol += Vector3DotProduct(v0, Vector3CrossProduct(v1, v2));
+        }
+        restVolume = fabsf(vol) / 6.f * compressionFactor;
+    }
+}
+
+//default constructor using UV sphere
 SoftBody::SoftBody(ConstraintMode mode) : constraintMode(mode) {
 
     Mesh restMesh = { 0 };
