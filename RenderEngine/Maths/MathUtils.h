@@ -36,6 +36,7 @@ inline void GenerateUvSphere(int rings,int slices,float radius,float** outVertic
 
     if (!vertices || !normals || !indices) {
         // malloc failed
+        free(vertices); free(normals); free(indices);
         *outVertices = *outNormals = NULL;
         *outIndices = NULL;
         *outVertexCount = *outIndexCount = 0;
@@ -158,6 +159,95 @@ inline void GenerateUvSphere(int rings,int slices,float radius,float** outVertic
     *outIndices = indices;
     *outVertexCount = vertexCount;
     *outIndexCount = indexCount;
+}
+
+inline void GeneratePlane(float sizeX,float sizeY,int subdivX,int subdivY,Vector3 normal,float** outVertices,float** outNormals,unsigned short** outIndices,int* outVertexCount,int* outIndexCount){
+
+    const int vertexCount = (subdivX+1)*(subdivY+1);
+    const int indexCount = subdivX*subdivY*6;
+
+    float* vertices = (float*)malloc(vertexCount * 3 * sizeof(float));
+    float* normals = (float*)malloc(vertexCount * 3 * sizeof(float));
+    unsigned short* indices = (unsigned short*)malloc(indexCount * sizeof(unsigned short));
+
+    if (!vertices || !normals || !indices) {
+        // malloc failed
+        *outVertices = *outNormals = NULL;
+        *outIndices = NULL;
+        *outVertexCount = *outIndexCount = 0;
+        return;
+    }
+
+    float nx = normal.x;
+    float ny = normal.y;
+    float nz = normal.z;
+
+    //Tangent and Bitangent from normal, gives a plane of any orientation
+    //Helper vector (world up by default)
+    float hx, hy, hz;
+    if (fabsf(ny) < 0.999f) { hx = 0.0f; hy = 1.0f; hz = 0.0f; }
+    else                     { hx = 1.0f; hy = 0.0f; hz = 0.0f; }
+
+    // T = normalize(helper × N)
+    float tx = hy*nz - hz*ny;
+    float ty = hz*nx - hx*nz;
+    float tz = hx*ny - hy*nx;
+    float tLen = sqrtf(tx*tx + ty*ty + tz*tz);
+    tx /= tLen; ty /= tLen; tz /= tLen;
+
+    // B = normalize(N × T)  — no need to re-normalize if N and T are already unit
+    float bx = ny*tz - nz*ty;
+    float by = nz*tx - nx*tz;
+    float bz = nx*ty - ny*tx;
+    // (already unit length since N⊥T, but normalizing anyway for safety)
+    float bLen = sqrtf(bx*bx + by*by + bz*bz);
+    bx /= bLen; by /= bLen; bz /= bLen;
+
+    // --- Generate vertices ---
+    for (int row = 0; row <= subdivY; row++) {
+        for (int col = 0; col <= subdivX; col++) {
+            int idx = (row * (subdivX + 1) + col) * 3;
+
+            // u, v in [-0.5, 0.5] → centred at origin
+            float u = ((float)col / (float)subdivX) - 0.5f;
+            float v = ((float)row / (float)subdivY) - 0.5f;
+
+            vertices[idx + 0] = u * sizeX * tx + v * sizeY * bx;
+            vertices[idx + 1] = u * sizeX * ty + v * sizeY * by;
+            vertices[idx + 2] = u * sizeX * tz + v * sizeY * bz;
+
+            normals[idx + 0] = nx;
+            normals[idx + 1] = ny;
+            normals[idx + 2] = nz;
+        }
+    }
+
+    // --- Generate indices (CCW winding) ---
+    int ii = 0;
+    for (int row = 0; row < subdivY; row++) {
+        for (int col = 0; col < subdivX; col++) {
+            unsigned short tl = (unsigned short)( row      * (subdivX + 1) + col    );
+            unsigned short tr = (unsigned short)( row      * (subdivX + 1) + col + 1);
+            unsigned short bl = (unsigned short)((row + 1) * (subdivX + 1) + col    );
+            unsigned short br = (unsigned short)((row + 1) * (subdivX + 1) + col + 1);
+
+            // Triangle 0: tl → tr → bl
+            indices[ii++] = tl;
+            indices[ii++] = tr;
+            indices[ii++] = bl;
+            // Triangle 1: tr → br → bl
+            indices[ii++] = tr;
+            indices[ii++] = br;
+            indices[ii++] = bl;
+        }
+    }
+
+    *outVertices = vertices;
+    *outNormals = normals;
+    *outIndices = indices;
+    *outVertexCount = vertexCount;
+    *outIndexCount = indexCount;
+    
 }
 
 class Matrix3

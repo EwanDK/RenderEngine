@@ -154,6 +154,7 @@ $(ProjectDir)dependencies\glad\include;
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CaveGen.cpp" />
     <ClCompile Include="MeshRessource.cpp" />
     <ClCompile Include="RenderEngine.cpp" />
     <ClCompile Include="RendererRaylib.cpp" />
@@ -165,6 +166,7 @@ $(ProjectDir)dependencies\glad\include;
     <ClCompile Include="Input\InputSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CaveGen.h" />
     <ClInclude Include="Maths\MathUtils.h" />
     <ClInclude Include="Input\InputSystem.h" />
     <ClInclude Include="MeshRessource.h" />
