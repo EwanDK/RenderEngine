@@ -158,8 +158,10 @@ $(ProjectDir)dependencies\glad\include;
     <ClCompile Include="MeshRessource.cpp" />
     <ClCompile Include="RenderEngine.cpp" />
     <ClCompile Include="RendererRaylib.cpp" />
+    <ClCompile Include="Slime.cpp" />
     <ClCompile Include="SoftBody.cpp" />
     <ClCompile Include="SpectatorCamera.cpp" />
+    <ClCompile Include="ThirdPersonCamera.cpp" />
     <ClCompile Include="Collision\GJK.cpp" />
     <ClCompile Include="Collision\CollisionSystem.cpp" />
     <ClCompile Include="Collision\ConvexClustering.cpp" />
@@ -170,9 +172,12 @@ $(ProjectDir)dependencies\glad\include;
     <ClInclude Include="Maths\MathUtils.h" />
     <ClInclude Include="Input\InputSystem.h" />
     <ClInclude Include="MeshRessource.h" />
+    <ClInclude Include="PerlinNoise.hpp" />
     <ClInclude Include="RendererRaylib.h" />
+    <ClInclude Include="Slime.h" />
     <ClInclude Include="SoftBody.h" />
     <ClInclude Include="SpectatorCamera.h" />
+    <ClInclude Include="ThirdPersonCamera.h" />
     <ClInclude Include="Collision\GJK.h" />
     <ClInclude Include="Collision\CollisionSystem.h" />
     <ClInclude Include="Collision\ConvexClustering.h" />

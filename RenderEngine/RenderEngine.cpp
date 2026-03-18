@@ -13,7 +13,7 @@ int main(int, char**)
 {
     InitWindow(1280,720,"Soft Body Simulation");
 
-    SpectatorCamera camera({ 0.0f, 150.0f, 0.0f });
+    //SpectatorCamera camera({ 0.0f, 150.0f, 0.0f });
 
     SoftBody soft = SoftBody();
     soft.Translate({0.0f, 100.0f, 0.0f}); // Start above the cube so it falls onto it
@@ -53,7 +53,7 @@ int main(int, char**)
         auto actions = inputSystem.Poll();
         float dt = GetFrameTime();
 
-        camera.Update(actions, dt);
+        //camera.Update(actions, dt);
 
         for (const auto& a : actions) {
             if (a.type != Input::InputEvent::Pressed) continue;
