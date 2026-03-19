@@ -1,6 +1,6 @@
 #include "raylib.h"
 #include "raymath.h"
-#include "SoftBody.h"
+//#include "SoftBody.h"
 #include "Collision/CollisionSystem.h"
 #include "Collision/ConvexClustering.h"
 #include "Collision/GJK.h"
@@ -13,14 +13,14 @@ int main(int, char**)
 {
     InitWindow(1280,720,"Soft Body Simulation");
 
-    //SpectatorCamera camera({ 0.0f, 150.0f, 0.0f });
+    SpectatorCamera camera({ 0.0f, 150.0f, 0.0f });
 
-    SoftBody soft = SoftBody();
-    soft.Translate({0.0f, 100.0f, 0.0f}); // Start above the cube so it falls onto it
+    /*SoftBody soft = SoftBody();
+    soft.Translate({0.0f, 100.0f, 0.0f}); // Start above the cube so it falls onto it*/
 
     // Ground plane well below the cube
     Collision::GroundPlane ground({0, 1, 0}, -200.0f);
-    soft.SetGroundPlane(ground);
+   // soft.SetGroundPlane(ground);
 
     // Static cube obstacle — top face at y=10, bottom at y=-10
     Vector3 cubePos = {0.0f, 0.0f, 0.0f};
@@ -33,7 +33,7 @@ int main(int, char**)
     std::vector<Vector3> cubeVerts;
     Matrix cubeTransform = MatrixTranslate(cubePos.x, cubePos.y, cubePos.z);
     Collision::ConvexShape cubeShape = Collision::ConvexShapeFromMesh(cubeMesh, cubeTransform, cubeVerts);
-    soft.AddStaticCollider(cubeShape);
+    //soft.AddStaticCollider(cubeShape);
     //SetTargetFPS(60);
 
     // Debug visualization flags (toggled by F1-F4)
@@ -71,7 +71,7 @@ int main(int, char**)
 
         BeginMode3D(camera.GetCamera());
 
-        soft.Update(dt);
+        //soft.Update(dt);
 
         // Draw static cube obstacle
         DrawModel(cubeModel, cubePos, 1.0f, GRAY);
@@ -82,7 +82,7 @@ int main(int, char**)
         DrawGrid(20, 10.0f);
 
         // --- Debug visualizations ---
-        const auto& pts = soft.GetPoints();
+        /*const auto& pts = soft.GetPoints();
 
         // F1: Cluster membership + hull vertices
         if (showClusters) {
@@ -134,7 +134,7 @@ int main(int, char**)
             for (const auto& st : struts) {
                 DrawLine3D(st.a->position, st.b->position, SKYBLUE);
             }
-        }
+        }*/
 
         EndMode3D();
 

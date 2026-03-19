@@ -119,7 +119,7 @@ $(ProjectDir)dependencies\glad\include;
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>IMGUI_IMPL_OPENGL_LOADER_GLAD</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\Maths;$(ProjectDir);$(ProjectDir)Projects\SoftBody;$(ProjectDir)Projects\CaveGen;$(ProjectDir)dependencies\raylib;$(ProjectDir)dependencies\raylib\external</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\Maths;$(ProjectDir);$(ProjectDir)Projects\CaveGen;$(ProjectDir)dependencies\raylib;$(ProjectDir)dependencies\raylib\external</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -158,8 +158,6 @@ $(ProjectDir)dependencies\glad\include;
     <ClCompile Include="MeshRessource.cpp" />
     <ClCompile Include="RenderEngine.cpp" />
     <ClCompile Include="RendererRaylib.cpp" />
-    <ClCompile Include="Projects\SoftBody\Slime.cpp" />
-    <ClCompile Include="Projects\SoftBody\SoftBody.cpp" />
     <ClCompile Include="SpectatorCamera.cpp" />
     <ClCompile Include="ThirdPersonCamera.cpp" />
     <ClCompile Include="Collision\GJK.cpp" />
@@ -174,8 +172,6 @@ $(ProjectDir)dependencies\glad\include;
     <ClInclude Include="MeshRessource.h" />
     <ClInclude Include="PerlinNoise.hpp" />
     <ClInclude Include="RendererRaylib.h" />
-    <ClInclude Include="Projects\SoftBody\Slime.h" />
-    <ClInclude Include="Projects\SoftBody\SoftBody.h" />
     <ClInclude Include="SpectatorCamera.h" />
     <ClInclude Include="ThirdPersonCamera.h" />
     <ClInclude Include="Collision\GJK.h" />
@@ -190,7 +186,6 @@ $(ProjectDir)dependencies\glad\include;
   <ItemGroup>
     <Folder Include="dependencies\" />
     <Folder Include="Projects\CaveGen\" />
-    <Folder Include="Projects\SoftBody\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
