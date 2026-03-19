@@ -119,7 +119,7 @@ $(ProjectDir)dependencies\glad\include;
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>IMGUI_IMPL_OPENGL_LOADER_GLAD</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\Maths;$(ProjectDir);$(ProjectDir)Projects\SoftBody;$(ProjectDir)Projects\CaveGen;$(ProjectDir)dependencies\raylib;$(ProjectDir)dependencies\raylib\external</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\Maths;$(ProjectDir);$(ProjectDir)Projects\SoftBody;$(ProjectDir)dependencies\raylib;$(ProjectDir)dependencies\raylib\external</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -154,7 +154,6 @@ $(ProjectDir)dependencies\glad\include;
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Projects\CaveGen\CaveGen.cpp" />
     <ClCompile Include="MeshRessource.cpp" />
     <ClCompile Include="RenderEngine.cpp" />
     <ClCompile Include="RendererRaylib.cpp" />
@@ -168,7 +167,6 @@ $(ProjectDir)dependencies\glad\include;
     <ClCompile Include="Input\InputSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Projects\CaveGen\CaveGen.h" />
     <ClInclude Include="Maths\MathUtils.h" />
     <ClInclude Include="Input\InputSystem.h" />
     <ClInclude Include="MeshRessource.h" />
@@ -189,7 +187,6 @@ $(ProjectDir)dependencies\glad\include;
   </ItemGroup>
   <ItemGroup>
     <Folder Include="dependencies\" />
-    <Folder Include="Projects\CaveGen\" />
     <Folder Include="Projects\SoftBody\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
