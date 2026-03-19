@@ -353,7 +353,7 @@ void SoftBody::ApplyVolumePreservation(float stiffness, float dt) {
     }
 }
 
-void SoftBody::Solve(float dt){
+void SoftBody::Solve(float dt, Vector3 externalForce){
     // Clamp dt to prevent tunneling on frame stutters
     dt = std::min(dt, 1.0f / 30.0f);
 
@@ -379,6 +379,7 @@ void SoftBody::Solve(float dt){
         p.speed += p.force * dt * (1.0f / p.mass); // Spring forces only
         p.speed *= dampingFactor;                    // Damp spring oscillation
         p.speed += gravity * dt;                     // Gravity added undamped
+        p.speed += externalForce * dt;               // External force (uniform, undamped)
     }
 
     // 4. Integrate position
@@ -539,7 +540,7 @@ void SoftBody::RecomputeNormals(Mesh& mesh)
     }
 }
 
-void SoftBody::Update(float dt){
-    Solve(dt);
+void SoftBody::Update(float dt, Vector3 externalForce){
+    Solve(dt, externalForce);
     Draw();
 }

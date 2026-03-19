@@ -80,10 +80,10 @@ public:
     void AddStrut(int a, int b);
     void AddMuscle(int a, int b, float stiffness, float damping, float muscleForce, int group);
     void SetMuscleGroup(int group, bool active);
-    void Solve(float dt);
+    void Solve(float dt, Vector3 externalForce = {});
     void Draw();
     void RecomputeNormals(Mesh& mesh);
-    void Update(float dt);
+    void Update(float dt, Vector3 externalForce = {});
     Model model;
 
     // Collision
