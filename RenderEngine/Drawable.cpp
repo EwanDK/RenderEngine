@@ -2,5 +2,5 @@
 #include "DrawableEvents.h"
 #include "EventBus.h"
 
-void Drawable::AddToFlat(EventBus& bus) { bus.PublishImmediately(AddToFlatEvent{ this }); }
-void Drawable::AddToLit(EventBus& bus)  { bus.PublishImmediately(AddToLitEvent{ this }); }
+void Drawable::AddToFlat(EventBus& bus) { EventBus::Get().PublishImmediately(AddToFlatEvent{ this }); }
+void Drawable::AddToLit(EventBus& bus)  { EventBus::Get().PublishImmediately(AddToLitEvent{ this }); }

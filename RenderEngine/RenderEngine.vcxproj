@@ -119,7 +119,7 @@ $(ProjectDir)dependencies\glad\include;
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>IMGUI_IMPL_OPENGL_LOADER_GLAD</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)\Maths;$(ProjectDir);$(ProjectDir)Projects\SoftBody;$(ProjectDir)Projects\CaveGen;$(ProjectDir)dependencies\raylib;$(ProjectDir)dependencies\raylib\external</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\Maths;$(ProjectDir);$(ProjectDir)dependencies\raylib;$(ProjectDir)dependencies\raylib\external</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -156,11 +156,8 @@ $(ProjectDir)dependencies\glad\include;
   <ItemGroup>
     <ClCompile Include="Drawable.cpp" />
     <ClCompile Include="EventBus.cpp" />
-    <ClCompile Include="Projects\CaveGen\CaveGen.cpp" />
     <ClCompile Include="MeshRessource.cpp" />
     <ClCompile Include="RenderEngine.cpp" />
-    <ClCompile Include="Projects\SoftBody\Slime.cpp" />
-    <ClCompile Include="Projects\SoftBody\SoftBody.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SpectatorCamera.cpp" />
     <ClCompile Include="ThirdPersonCamera.cpp" />
@@ -174,13 +171,10 @@ $(ProjectDir)dependencies\glad\include;
     <ClInclude Include="DrawableEvents.h" />
     <ClInclude Include="Event.h" />
     <ClInclude Include="EventBus.h" />
-    <ClInclude Include="Projects\CaveGen\CaveGen.h" />
     <ClInclude Include="Maths\MathUtils.h" />
     <ClInclude Include="Input\InputSystem.h" />
     <ClInclude Include="MeshRessource.h" />
     <ClInclude Include="PerlinNoise.hpp" />
-    <ClInclude Include="Projects\SoftBody\Slime.h" />
-    <ClInclude Include="Projects\SoftBody\SoftBody.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="SpectatorCamera.h" />
     <ClInclude Include="ThirdPersonCamera.h" />
@@ -196,8 +190,6 @@ $(ProjectDir)dependencies\glad\include;
   </ItemGroup>
   <ItemGroup>
     <Folder Include="dependencies\" />
-    <Folder Include="Projects\CaveGen\" />
-    <Folder Include="Projects\SoftBody\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Res\lighting.frag" />

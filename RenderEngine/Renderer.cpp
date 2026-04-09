@@ -6,7 +6,8 @@ Renderer::Renderer(EventBus& bus) : bus(bus) {
     litShader = LoadShader(TextFormat("Res/lighting.vert", 330), TextFormat("Res/lighting.frag", 330));
     litShader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(litShader, "viewPos");
     int ambientLoc = GetShaderLocation(litShader, "ambient");
-    SetShaderValue(litShader, ambientLoc, (float[4]){ 0.1f, 0.1f, 0.1f, 1.0f }, SHADER_UNIFORM_VEC4);
+    float ambient[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+    SetShaderValue(litShader, ambientLoc, ambient, SHADER_UNIFORM_VEC4);
 
     flatSubID = bus.Subscribe<AddToFlatEvent>([this](const AddToFlatEvent& e) {
         flatDrawables.push_back(e.drawable);

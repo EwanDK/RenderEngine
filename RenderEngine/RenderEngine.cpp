@@ -13,9 +13,8 @@ int main(int, char**)
 {
     InitWindow(WINDOW_W, WINDOW_H, NAME);
 
-    EventBus eventBus;
     SpectatorCamera camera({ 0.0f, 150.0f, 0.0f });
-    Renderer renderer(eventBus);
+    Renderer renderer(EventBus::Get());
     camera.InitFlashlight(renderer.getLitShader()); //tmp
 
     
@@ -42,7 +41,7 @@ int main(int, char**)
             }
         }
 
-        eventBus.Flush(GetTime());
+        EventBus::Get().Flush(GetTime());
         renderer.Draw(camera.GetCamera());
     }
 
