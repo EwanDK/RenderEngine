@@ -11,6 +11,14 @@ class EventBus {
 public:
     using SubscriptionID = uint64_t;
 
+    static EventBus& Get() {
+        static EventBus instance;
+        return instance;
+    }
+
+    EventBus(const EventBus&) = delete;
+    EventBus& operator=(const EventBus&) = delete;
+
     // --- Subscription ---
 
     template<typename EventT>
@@ -69,6 +77,8 @@ private:
     };
 
     void Dispatch(std::type_index type, const Event& event);
+
+    EventBus() = default;
 
     std::unordered_map<std::type_index, std::vector<Subscriber>> subscribers;
     std::vector<PendingEvent> pendingQueue;
