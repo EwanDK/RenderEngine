@@ -154,12 +154,14 @@ $(ProjectDir)dependencies\glad\include;
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Drawable.cpp" />
+    <ClCompile Include="EventBus.cpp" />
     <ClCompile Include="Projects\CaveGen\CaveGen.cpp" />
     <ClCompile Include="MeshRessource.cpp" />
     <ClCompile Include="RenderEngine.cpp" />
-    <ClCompile Include="RendererRaylib.cpp" />
     <ClCompile Include="Projects\SoftBody\Slime.cpp" />
     <ClCompile Include="Projects\SoftBody\SoftBody.cpp" />
+    <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SpectatorCamera.cpp" />
     <ClCompile Include="ThirdPersonCamera.cpp" />
     <ClCompile Include="Collision\GJK.cpp" />
@@ -168,14 +170,18 @@ $(ProjectDir)dependencies\glad\include;
     <ClCompile Include="Input\InputSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Drawable.h" />
+    <ClInclude Include="DrawableEvents.h" />
+    <ClInclude Include="Event.h" />
+    <ClInclude Include="EventBus.h" />
     <ClInclude Include="Projects\CaveGen\CaveGen.h" />
     <ClInclude Include="Maths\MathUtils.h" />
     <ClInclude Include="Input\InputSystem.h" />
     <ClInclude Include="MeshRessource.h" />
     <ClInclude Include="PerlinNoise.hpp" />
-    <ClInclude Include="RendererRaylib.h" />
     <ClInclude Include="Projects\SoftBody\Slime.h" />
     <ClInclude Include="Projects\SoftBody\SoftBody.h" />
+    <ClInclude Include="Renderer.h" />
     <ClInclude Include="SpectatorCamera.h" />
     <ClInclude Include="ThirdPersonCamera.h" />
     <ClInclude Include="Collision\GJK.h" />
@@ -186,11 +192,15 @@ $(ProjectDir)dependencies\glad\include;
     <Content Include="Res\BasicMesh.frag" />
     <Content Include="Res\BasicMesh.vert" />
     <Content Include="Res\cube.obj" />
+    <Content Include="Res\lighting.vert" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="dependencies\" />
     <Folder Include="Projects\CaveGen\" />
     <Folder Include="Projects\SoftBody\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Res\lighting.frag" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

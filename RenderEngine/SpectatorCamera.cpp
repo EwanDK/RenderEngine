@@ -1,3 +1,4 @@
+#define RLIGHTS_IMPLEMENTATION
 #include "SpectatorCamera.h"
 #include "raymath.h"
 #include <cmath>
@@ -6,9 +7,14 @@
 static constexpr float kPitchLimit = 1.5533430f; // ~89 degrees
 
 SpectatorCamera::SpectatorCamera(Vector3 position, float yaw, float pitch)
-    : m_position(position), m_yaw(yaw), m_pitch(pitch)
+    : m_position(position), m_yaw(yaw), m_pitch(pitch), m_flashlight({})
 {
     DisableCursor();
+}
+
+void SpectatorCamera::InitFlashlight(Shader shader)
+{
+    m_flashlight = CreateLight(LIGHT_POINT, m_position, Vector3Zero(), WHITE, shader);
 }
 
 void SpectatorCamera::Update(const std::vector<Input::InputAction>& actions, float dt)
@@ -43,6 +49,8 @@ void SpectatorCamera::Update(const std::vector<Input::InputAction>& actions, flo
     if (len > 0.0f) {
         m_position = m_position + move * (moveSpeed * dt / len);
     }
+
+    m_flashlight.position = m_position;
 }
 
 Camera SpectatorCamera::GetCamera() const
