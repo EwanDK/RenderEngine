@@ -7,6 +7,7 @@
 #include <cmath>
 #include "EventBus.h"
 #include "Renderer.h"
+#include "Projects/CaveGen/CaveGen.h"
 
 
 int main(int, char**)
@@ -16,6 +17,8 @@ int main(int, char**)
     SpectatorCamera camera({ 0.0f, 150.0f, 0.0f });
     Renderer renderer(EventBus::Get());
     camera.InitFlashlight(renderer.getLitShader()); //tmp
+    CaveGen cave;
+    cave.GenerateMesh(renderer.getLitShader());
 
     
 #if FPSCAP
@@ -32,11 +35,12 @@ int main(int, char**)
         float dt = GetFrameTime();
 
         camera.Update(actions, dt);
+        UpdateLightValues(renderer.getLitShader(), camera.GetFlashlight());
 
         for (const auto& a : actions) {
             if (a.type != Input::InputEvent::Pressed) continue;
             switch (a.action) {
-                
+            case Input::ActionID::Water: {cave.WaterDeposition();}
                 default: break;
             }
         }

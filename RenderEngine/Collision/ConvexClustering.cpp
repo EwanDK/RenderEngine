@@ -1,5 +1,5 @@
 #include "ConvexClustering.h"
-#include "SoftBody.h"
+//#include "SoftBody.h"
 #include "MathUtils.h"
 #include <algorithm>
 #include <random>

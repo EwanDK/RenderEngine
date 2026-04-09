@@ -9,6 +9,7 @@ InputSystem::InputSystem() {
     Bind({ MOD_NONE, KEY_F2 }, ActionID::ToggleParticles);
     Bind({ MOD_NONE, KEY_F3 }, ActionID::ToggleContacts);
     Bind({ MOD_NONE, KEY_F4 }, ActionID::ToggleSprings);
+    Bind({ MOD_NONE, KEY_F5 }, ActionID::Water);
 
     // Default bindings — spectator camera (physical QWERTY positions)
     // On AZERTY: W=Z, A=Q, S=S, D=D, Q=A, E=E

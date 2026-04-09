@@ -19,6 +19,12 @@
     <Filter Include="Header Files\Collision">
       <UniqueIdentifier>{7B1D3E0A-2C4F-5D6B-8E9A-0C1D2E3F4A5B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Projects\CaveGen">
+      <UniqueIdentifier>{A3F2E1D0-4B5C-6D7E-8F9A-0B1C2D3E4F5A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Projects\CaveGen">
+      <UniqueIdentifier>{B4G3F2E1-5C6D-7E8F-9A0B-1C2D3E4F5A6B}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderEngine.cpp">
@@ -78,6 +84,9 @@
     <ClCompile Include="Collision\ConvexClustering.cpp">
       <Filter>Source Files\Collision</Filter>
     </ClCompile>
+    <ClCompile Include="Projects\CaveGen\CaveGen.cpp">
+      <Filter>Source Files\Projects\CaveGen</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dependencies\tiny_obj_loader.h">
@@ -112,6 +121,9 @@
     </ClInclude>
     <ClInclude Include="Collision\ConvexClustering.h">
       <Filter>Header Files\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Projects\CaveGen\CaveGen.h">
+      <Filter>Header Files\Projects\CaveGen</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

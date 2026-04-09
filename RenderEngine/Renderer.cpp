@@ -24,8 +24,7 @@ Renderer::~Renderer() {
 }
 
 void Renderer::Draw(Camera3D camera) {
-    SetShaderValue(litShader, litShader.locs[SHADER_LOC_VECTOR_VIEW],
-        &camera.position, SHADER_UNIFORM_VEC3);
+    SetShaderValue(litShader, litShader.locs[SHADER_LOC_VECTOR_VIEW],&camera.position, SHADER_UNIFORM_VEC3);
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -38,7 +37,8 @@ void Renderer::Draw(Camera3D camera) {
     for (auto* d : litDrawables)
         d->Draw();
     EndShaderMode();
-
+    
     EndMode3D();
+    DrawText("[F5] Next Water Deposition step",10,70,15,BLUE);
     EndDrawing();
 }

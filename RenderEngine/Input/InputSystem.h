@@ -37,6 +37,7 @@ enum class ActionID : int {
     ToggleParticles,
     ToggleContacts,
     ToggleSprings,
+    Water,
 
     // Spectator camera movement
     CamForward,
