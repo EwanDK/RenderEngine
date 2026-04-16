@@ -10,26 +10,24 @@
 #include "Projects/CaveGen/CaveGen.h"
 
 
-int main(int, char**)
-{
+int main(int, char**){
     InitWindow(WINDOW_W, WINDOW_H, NAME);
 
-    SpectatorCamera camera({ 0.0f, 150.0f, 0.0f });
+    SpectatorCamera camera({0.0f, 150.0f, 0.0f});
     Renderer renderer(EventBus::Get());
     camera.InitFlashlight(renderer.getLitShader()); //tmp
     CaveGen cave;
     cave.GenerateMesh(renderer.getLitShader());
 
-    
+
 #if FPSCAP
     SetTargetFPS(60);
 #endif
-    
+
 
     Input::InputSystem inputSystem;
 
-    while (!WindowShouldClose())
-    {
+    while (!WindowShouldClose()){
         // Poll input system and process actions
         auto actions = inputSystem.Poll();
         float dt = GetFrameTime();
@@ -37,11 +35,11 @@ int main(int, char**)
         camera.Update(actions, dt);
         UpdateLightValues(renderer.getLitShader(), camera.GetFlashlight());
 
-        for (const auto& a : actions) {
+        for (const auto& a : actions){
             if (a.type != Input::InputEvent::Pressed) continue;
-            switch (a.action) {
-            case Input::ActionID::Water: {cave.WaterDeposition();}
-                default: break;
+            switch (a.action){
+            case Input::ActionID::Water: { cave.WaterDeposition();cave.WaterDrip(); }
+            default: break;
             }
         }
 
