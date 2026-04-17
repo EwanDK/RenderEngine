@@ -1,7 +1,9 @@
 #pragma once
 #include <limits>
 #define _USE_MATH_DEFINES
+#include <cstdlib>
 #include <math.h>
+#include <raymath.h>
 
 inline float toRadians(float degrees){
     return degrees * M_PI / 180.f;

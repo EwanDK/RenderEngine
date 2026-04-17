@@ -22,6 +22,9 @@ struct StrutDef {
 
 // ---- Runtime structs (store raw Point pointers after body is built) ----
 
+
+#ifndef SOFTBODY_POINT_DEFINED
+#define SOFTBODY_POINT_DEFINED
 struct Point{
     Vector3 position;
     Vector3 speed;
@@ -31,6 +34,7 @@ struct Point{
     int index;
     bool isStatic = false;
 };
+#endif
 
 struct Strut {
     Point* a;

@@ -3,8 +3,18 @@
 #include "GJK.h"
 #include <vector>
 
-// Forward declare Point (from SoftBody.h)
-struct Point;
+#ifndef SOFTBODY_POINT_DEFINED
+#define SOFTBODY_POINT_DEFINED
+struct Point {
+    Vector3 position;
+    Vector3 speed;
+    Vector3 force;
+    float mass;
+    const float radius = 1.f;
+    int index;
+    bool isStatic = false;
+};
+#endif
 
 namespace Collision {
 
