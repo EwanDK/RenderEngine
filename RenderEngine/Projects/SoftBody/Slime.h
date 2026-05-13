@@ -1,21 +1,22 @@
 #pragma once
 #include "SoftBody.h"
 #include "ThirdPersonCamera.h"
+#include "Drawable.h"
 
-namespace Input
-{
-    struct InputAction;
-}
-
-class Slime{
-
+class Slime : public Drawable {
 public:
     Slime();
-    void Update(const std::vector<Input::InputAction>& actions,float dt,Vector3 force);
-    void ApplyForce(Vector3 force);
-
+    void Update(float dt);
+    void Draw() override;
+    void DrawHUD() override;
+    const ThirdPersonCamera& GetThirdPersonCamera() const { return camera; }
+    void SetDebug(bool showClusters, bool showParticles, bool showContacts, bool showSprings);
+    SoftBody core;
 private:
-    SoftBody core,skin;
+    
+    Vector3 centroid = {};
     ThirdPersonCamera camera;
-
+    float jumpTimer = 0.f;
+    bool wasSpaceHeld = false;
+    float squatHeight = 0.f;
 };

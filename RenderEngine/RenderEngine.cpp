@@ -2,47 +2,63 @@
 #include "raymath.h"
 #include "Collision/CollisionSystem.h"
 #include "Input/InputSystem.h"
-#include "SpectatorCamera.h"
-#include <vector>
-#include <cmath>
+
 #include "EventBus.h"
 #include "Renderer.h"
+#include "Projects/SoftBody/Slime.h"
 
 
 int main(int, char**)
 {
     InitWindow(WINDOW_W, WINDOW_H, NAME);
+    DisableCursor();
 
-    SpectatorCamera camera({ 0.0f, 150.0f, 0.0f });
     Renderer renderer(EventBus::Get());
-    camera.InitFlashlight(renderer.getLitShader()); //tmp
-
+    Slime slime;
     
+    Vector3 cubePos = {0.0f, -50.0f, 0.0f};
+    Vector3 cubeSize = {80.0f, 20.0f, 80.0f};
+    Mesh cubeMesh = GenMeshCube(cubeSize.x, cubeSize.y, cubeSize.z);
+    UploadMesh(&cubeMesh, false);
+    Model cubeModel = LoadModelFromMesh(cubeMesh);
+
+    // Extract cube verts in world space and register as static collider
+    std::vector<Vector3> cubeVerts;
+    Matrix cubeTransform = MatrixTranslate(cubePos.x, cubePos.y, cubePos.z);
+    Collision::ConvexShape cubeShape = Collision::ConvexShapeFromMesh(cubeMesh, cubeTransform, cubeVerts);
+    slime.core.AddStaticCollider(cubeShape);
+
 #if FPSCAP
     SetTargetFPS(60);
 #endif
-    
+
+    bool showClusters  = false;
+    bool showParticles = false;
+    bool showContacts  = false;
+    bool showSprings   = false;
 
     Input::InputSystem inputSystem;
 
     while (!WindowShouldClose())
     {
-        // Poll input system and process actions
         auto actions = inputSystem.Poll();
         float dt = GetFrameTime();
-
-        camera.Update(actions, dt);
 
         for (const auto& a : actions) {
             if (a.type != Input::InputEvent::Pressed) continue;
             switch (a.action) {
-                
-                default: break;
+            case Input::ActionID::ToggleClusters:  showClusters  = !showClusters;  break;
+            case Input::ActionID::ToggleParticles: showParticles = !showParticles; break;
+            case Input::ActionID::ToggleContacts:  showContacts  = !showContacts;  break;
+            case Input::ActionID::ToggleSprings:   showSprings   = !showSprings;   break;
+            default: break;
             }
         }
 
-        EventBus::Get().Flush(GetTime());
-        renderer.Draw(camera.GetCamera());
+        slime.SetDebug(showClusters, showParticles, showContacts, showSprings);
+        slime.Update(dt);
+        EventBus::Get().Flush((float)GetTime());
+        renderer.Draw(slime.GetThirdPersonCamera().GetCamera());
     }
 
     CloseWindow();

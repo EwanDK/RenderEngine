@@ -17,9 +17,17 @@ ThirdPersonCamera::ThirdPersonCamera(const Vector3* owner,
 void ThirdPersonCamera::Update(float /*dt*/)
 {
     Vector2 delta = GetMouseDelta();
-    m_yaw   += delta.x * mouseSensitivity;
+    m_yaw   -= delta.x * mouseSensitivity; // minus: mouse-left → arm swings left
     m_pitch -= delta.y * mouseSensitivity;   // invert Y: drag-down = look up
     m_pitch  = std::clamp(m_pitch, kPitchMin, kPitchMax);
+}
+
+Vector3 ThirdPersonCamera::GetForwardXZ() const {
+    return {sinf(m_yaw), 0.f, -cosf(m_yaw)};
+}
+
+Vector3 ThirdPersonCamera::GetRightXZ() const {
+    return {cosf(m_yaw), 0.f, sinf(m_yaw)};
 }
 
 Camera ThirdPersonCamera::GetCamera() const

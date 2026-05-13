@@ -38,7 +38,19 @@ void Renderer::Draw(Camera3D camera) {
     for (auto* d : litDrawables)
         d->Draw();
     EndShaderMode();
+    
+    
+    
+    DrawGrid(20, 50);
+    DrawCube(Vector3{0,-50,0},80.0f, 20.0f, 80.0f,RED);
+    DrawPlane(Vector3{0.0f, -60.0f, 0.0f}, Vector2{400.0f, 400.0f}, LIGHTGRAY);
 
     EndMode3D();
+
+    DrawText("Soft Body + GJK Collision", 10, 10, 20, DARKGRAY);
+    DrawFPS(10, 40);
+    for (auto* d : flatDrawables)
+        d->DrawHUD();
+
     EndDrawing();
 }

@@ -37,6 +37,10 @@ public:
     float GetYaw()   const { return m_yaw; }
     float GetPitch() const { return m_pitch; }
 
+    // Flat XZ unit vectors aligned to the camera arm direction
+    Vector3 GetForwardXZ() const;
+    Vector3 GetRightXZ()   const;
+
 private:
     const Vector3* m_owner;
     float          m_yaw;

@@ -86,12 +86,15 @@ public:
     void SetMuscleGroup(int group, bool active);
     void Solve(float dt, Vector3 externalForce = {});
     void Draw();
+    void DrawHUD();
     void RecomputeNormals(Mesh& mesh);
     void Update(float dt, Vector3 externalForce = {});
+    void SetDebug(bool showClusters, bool showParticles, bool showContacts, bool showSprings);
     Model model;
 
     // Collision
     void SetGroundPlane(const Collision::GroundPlane& ground);
+    void SetLockUpright(bool lock) { lockUpright = lock; }
     void AddStaticCollider(const Collision::ConvexShape& shape);
     void ClearStaticColliders();
     void Translate(Vector3 offset);
@@ -122,8 +125,11 @@ private:
 
     // Collision data
     bool hasGroundPlane = false;
+    bool lockUpright = false;
     Collision::GroundPlane groundPlane{{0,1,0}, 0.0f};
     std::vector<Collision::ConvexShape> staticColliders;
     std::vector<Collision::ConvexCluster> clusters;
     std::vector<Collision::DebugContact> debugContacts;
+    
+    bool showClusters = false, showParticles = false, showContacts = false, showSprings = false;
 };

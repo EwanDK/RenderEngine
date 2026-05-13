@@ -78,11 +78,11 @@ SoftBody::SoftBody(ConstraintMode mode) : constraintMode(mode) {
 
     Mesh restMesh = { 0 };
 
-    GenerateUvSphere(10, 10, 60.0f,&restMesh.vertices,&restMesh.normals,&restMesh.indices,&restMesh.vertexCount,&restMesh.triangleCount);
+    GenerateUvSphere(10, 10, 5.0f,&restMesh.vertices,&restMesh.normals,&restMesh.indices,&restMesh.vertexCount,&restMesh.triangleCount);
     restMesh.triangleCount /= 3;
     
     Mesh baseMesh = { 0 };
-    GenerateUvSphere(10, 10, 50.0f,&baseMesh.vertices,&baseMesh.normals,&baseMesh.indices,&baseMesh.vertexCount,&baseMesh.triangleCount);
+    GenerateUvSphere(10, 10, 5.0f,&baseMesh.vertices,&baseMesh.normals,&baseMesh.indices,&baseMesh.vertexCount,&baseMesh.triangleCount);
     baseMesh.triangleCount /= 3;
     UploadMesh(&baseMesh, false);
     model = LoadModelFromMesh(baseMesh);
@@ -291,8 +291,8 @@ void SoftBody::ApplyShapeMatching(float stiffness, float dt){
         A += Matrix3::outerProduct(p, q); // A += pqᵗ
     }
 
-    // Compute optimal rotation matrix
-    Matrix3 R = A.orthonormalized();
+    // When lockUpright is set, skip rotation so the rest pose is always world-upright
+    Matrix3 R = lockUpright ? Matrix3() : A.orthonormalized();
 
     float effectiveStiffness = 1.0f - pow(1.0f - stiffness, dt * 60.0f);
     // Pull current points toward rotated rest pose
@@ -406,9 +406,9 @@ void SoftBody::Solve(float dt, Vector3 externalForce){
 
         // Shape matching or volume preservation
         if (constraintMode == ConstraintMode::ShapeMatching)
-            ApplyShapeMatching(0.01f, dt);
+            ApplyShapeMatching(0.5f, dt);
         else
-            ApplyVolumePreservation(0.5f, dt);
+            ApplyVolumePreservation(0.9f, dt);
 
         // Ground collision
         if (hasGroundPlane) {
@@ -467,9 +467,9 @@ void SoftBody::Translate(Vector3 offset) {
     }
     // Also shift rest positions so shape matching targets the new location
     for (int i = 0; i < (int)points.size(); i++) {
-        restPositions[i * 3]     += offset.x;
-        restPositions[i * 3 + 1] += offset.y;
-        restPositions[i * 3 + 2] += offset.z;
+        restPositions[i*3] += offset.x;
+        restPositions[i*3+1] += offset.y;
+        restPositions[i*3+2] += offset.z;
     }
 }
 
@@ -487,6 +487,76 @@ void SoftBody::Draw(){
     UpdateMeshBuffer(model.meshes[0], 2, model.meshes[0].normals,  model.meshes[0].vertexCount * 3 * sizeof(float), 0);
 
     DrawModelWires(model,Vector3(0.f,0.f,0.f),1,BLUE);
+    
+    
+    const Color clusterColors[] = {RED, GREEN, BLUE, YELLOW, PURPLE, ORANGE};
+    const int numClusterColors = 6;
+    // --- Debug visualizations ---
+        const auto& pts = GetPoints();
+
+        // F1: Cluster membership + hull vertices
+        if (showClusters) {
+            const auto& clusters = GetClusters();
+            for (int c = 0; c < (int)clusters.size(); c++) {
+                Color col = clusterColors[c % numClusterColors];
+                // Particles colored by cluster
+                for (int idx : clusters[c].pointIndices) {
+                    DrawSphere(pts[idx].position, 1.5f, col);
+                }
+                // Hull vertices as wireframe spheres
+                for (const auto& hv : clusters[c].hullVertices) {
+                    DrawSphereWires(hv, 2.5f, 4, 4, col);
+                }
+            }
+        }
+
+        // F2: All particle spheres
+        if (showParticles) {
+            for (const auto& p : pts) {
+                DrawSphere(p.position, p.radius, Fade(RED, 0.5f));
+            }
+        }
+
+        // F3: Contact normals
+        if (showContacts) {
+            const auto& contacts = GetDebugContacts();
+            for (const auto& c : contacts) {
+                Vector3 end = c.position + c.normal * 5.0f;
+                DrawLine3D(c.position, end, MAGENTA);
+                DrawSphere(c.position, 0.5f, MAGENTA);
+            }
+        }
+
+        // F4: Springs colored by stretch ratio, muscles in magenta/white, struts in cyan
+        if (showSprings) {
+            const auto& springs = GetSprings();
+            for (const auto& s : springs) {
+                Color col;
+                if (s.muscleGroup >= 0) {
+                    bool active = activeMuscleGroups.count(s.muscleGroup) > 0;
+                    col = active ? WHITE : MAGENTA;
+                } else {
+                    float dist = Vector3Distance(s.points[0]->position, s.points[1]->position);
+                    float ratio = dist / s.baseDistance;
+                    float stretch = fabsf(ratio - 1.0f);
+                    float t = fminf(stretch / 0.5f, 1.0f);
+                    col = {(unsigned char)(t * 255.f), (unsigned char)((1.f - t) * 255.f), 0, 255};
+                }
+                DrawLine3D(s.points[0]->position, s.points[1]->position, col);
+            }
+            const auto& struts = GetStruts();
+            for (const auto& st : struts) {
+                DrawLine3D(st.a->position, st.b->position, SKYBLUE);
+            }
+        }
+    
+}
+
+void SoftBody::DrawHUD(){
+    DrawText(TextFormat("[F1] Clusters:  %s", showClusters  ? "ON" : "OFF"), 10, 70,  15, showClusters  ? GREEN : GRAY);
+    DrawText(TextFormat("[F2] Particles: %s", showParticles ? "ON" : "OFF"), 10, 90,  15, showParticles ? GREEN : GRAY);
+    DrawText(TextFormat("[F3] Contacts:  %s", showContacts  ? "ON" : "OFF"), 10, 110, 15, showContacts  ? GREEN : GRAY);
+    DrawText(TextFormat("[F4] Springs:   %s", showSprings   ? "ON" : "OFF"), 10, 130, 15, showSprings   ? GREEN : GRAY);
 }
 
 void SoftBody::RecomputeNormals(Mesh& mesh)
@@ -543,4 +613,11 @@ void SoftBody::RecomputeNormals(Mesh& mesh)
 void SoftBody::Update(float dt, Vector3 externalForce){
     Solve(dt, externalForce);
     Draw();
+}
+
+void SoftBody::SetDebug(bool showClusters, bool showParticles, bool showContacts, bool showSprings){
+    this->showClusters  = showClusters;
+    this->showParticles = showParticles;
+    this->showContacts  = showContacts;
+    this->showSprings   = showSprings;
 }

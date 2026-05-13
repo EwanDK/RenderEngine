@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <functional>
 #include "raylib.h"
 #include "EventBus.h"
 
