@@ -38,7 +38,8 @@ int main(int, char**){
         for (const auto& a : actions){
             if (a.type != Input::InputEvent::Pressed) continue;
             switch (a.action){
-            case Input::ActionID::Water: { cave.WaterDeposition();cave.WaterDrip(); }
+            case Input::ActionID::Water: { cave.WaterDeposition(); cave.WaterDrip(); break; }
+            case Input::ActionID::DebugNudge: { cave.DebugNudge(); break; }
             default: break;
             }
         }

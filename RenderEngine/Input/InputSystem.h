@@ -38,6 +38,7 @@ enum class ActionID : int {
     ToggleContacts,
     ToggleSprings,
     Water,
+    DebugNudge,
 
     // Spectator camera movement
     CamForward,

@@ -252,6 +252,136 @@ inline void GeneratePlane(float sizeX,float sizeY,int subdivX,int subdivY,Vector
     
 }
 
+// Equilateral triangle tiling. subdivY should be even for full left/right edge closure.
+// Height is derived: totalY = subdivY * (sizeX/subdivX) * sqrt(3)/2.
+// Left/right edges are closed with isosceles triangles per complete even-odd-even band.
+inline void GeneratePlaneEquilateral(float sizeX, int subdivX, int subdivY, Vector3 normal, float** outVertices, float** outNormals, unsigned short** outIndices, int* outVertexCount, int* outIndexCount){
+    float dx = sizeX / (float)subdivX;
+    float dy = dx * sqrtf(3.0f) / 2.0f;
+    float totalY = (float)subdivY * dy;
+
+    int nEvenRows = subdivY / 2 + 1;
+    int nOddRows = (subdivY + 1) / 2;
+    int vertexCount = nEvenRows * (subdivX + 1) + nOddRows * subdivX;
+
+    int nBands = subdivY / 2;
+    int triCount = nBands * 4 * subdivX + (subdivY % 2 == 1 ? 2 * subdivX - 1 : 0);
+    int indexCount = triCount * 3;
+
+    float* vertices = (float*)malloc(vertexCount * 3 * sizeof(float));
+    float* normals = (float*)malloc(vertexCount * 3 * sizeof(float));
+    unsigned short* indices = (unsigned short*)malloc(indexCount * sizeof(unsigned short));
+
+    if (!vertices || !normals || !indices) {
+        free(vertices); free(normals); free(indices);
+        *outVertices = *outNormals = NULL;
+        *outIndices = NULL;
+        *outVertexCount = *outIndexCount = 0;
+        return;
+    }
+
+    float nx = normal.x;
+    float ny = normal.y;
+    float nz = normal.z;
+
+    float hx, hy, hz;
+    if (fabsf(ny) < 0.999f) { hx = 0.0f; hy = 1.0f; hz = 0.0f; }
+    else                     { hx = 1.0f; hy = 0.0f; hz = 0.0f; }
+
+    float tx = hy * nz - hz * ny;
+    float ty = hz * nx - hx * nz;
+    float tz = hx * ny - hy * nx;
+    float tLen = sqrtf(tx * tx + ty * ty + tz * tz);
+    tx /= tLen; ty /= tLen; tz /= tLen;
+
+    float bx = ny * tz - nz * ty;
+    float by = nz * tx - nx * tz;
+    float bz = nx * ty - ny * tx;
+    float bLen = sqrtf(bx * bx + by * by + bz * bz);
+    bx /= bLen; by /= bLen; bz /= bLen;
+
+    int v = 0;
+    for (int row = 0; row <= subdivY; row++) {
+        float bCoord = (float)row * dy - totalY * 0.5f;
+        if (row % 2 == 0) {
+            for (int col = 0; col <= subdivX; col++) {
+                float uCoord = (float)col * dx - sizeX * 0.5f;
+                vertices[v * 3 + 0] = uCoord * tx + bCoord * bx;
+                vertices[v * 3 + 1] = uCoord * ty + bCoord * by;
+                vertices[v * 3 + 2] = uCoord * tz + bCoord * bz;
+                normals[v * 3 + 0] = nx;
+                normals[v * 3 + 1] = ny;
+                normals[v * 3 + 2] = nz;
+                v++;
+            }
+        } else {
+            for (int col = 0; col < subdivX; col++) {
+                float uCoord = ((float)col + 0.5f) * dx - sizeX * 0.5f;
+                vertices[v * 3 + 0] = uCoord * tx + bCoord * bx;
+                vertices[v * 3 + 1] = uCoord * ty + bCoord * by;
+                vertices[v * 3 + 2] = uCoord * tz + bCoord * bz;
+                normals[v * 3 + 0] = nx;
+                normals[v * 3 + 1] = ny;
+                normals[v * 3 + 2] = nz;
+                v++;
+            }
+        }
+    }
+
+    // rowBase(r): first vertex index for vertex row r
+    // even row r=2k: k*(2*subdivX+1)
+    // odd  row r=2k+1: k*(2*subdivX+1) + subdivX+1
+    auto rb = [&](int r) -> int {
+        return (r / 2) * (2 * subdivX + 1) + (r % 2 == 1 ? subdivX + 1 : 0);
+    };
+
+    int ii = 0;
+    for (int row = 0; row < subdivY; row++) {
+        int cur = rb(row);
+        int nxt = rb(row + 1);
+
+        if (row % 2 == 0) {
+            // Even → Odd
+            for (int c = 0; c < subdivX; c++) {
+                indices[ii++] = (unsigned short)(cur + c);
+                indices[ii++] = (unsigned short)(cur + c + 1);
+                indices[ii++] = (unsigned short)(nxt + c);
+            }
+            for (int c = 0; c < subdivX - 1; c++) {
+                indices[ii++] = (unsigned short)(cur + c + 1);
+                indices[ii++] = (unsigned short)(nxt + c + 1);
+                indices[ii++] = (unsigned short)(nxt + c);
+            }
+        } else {
+            // Odd → Even
+            for (int c = 0; c < subdivX; c++) {
+                indices[ii++] = (unsigned short)(cur + c);
+                indices[ii++] = (unsigned short)(nxt + c + 1);
+                indices[ii++] = (unsigned short)(nxt + c);
+            }
+            for (int c = 0; c < subdivX - 1; c++) {
+                indices[ii++] = (unsigned short)(cur + c);
+                indices[ii++] = (unsigned short)(cur + c + 1);
+                indices[ii++] = (unsigned short)(nxt + c + 1);
+            }
+            // Closing isosceles triangles on left and right edges
+            int prev = rb(row - 1);
+            indices[ii++] = (unsigned short)(prev);
+            indices[ii++] = (unsigned short)(cur);
+            indices[ii++] = (unsigned short)(nxt);
+            indices[ii++] = (unsigned short)(prev + subdivX);
+            indices[ii++] = (unsigned short)(nxt + subdivX);
+            indices[ii++] = (unsigned short)(cur + subdivX - 1);
+        }
+    }
+
+    *outVertices = vertices;
+    *outNormals = normals;
+    *outIndices = indices;
+    *outVertexCount = vertexCount;
+    *outIndexCount = ii;
+}
+
 class Matrix3
 {
 public:
